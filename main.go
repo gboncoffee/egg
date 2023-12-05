@@ -8,10 +8,4 @@ import (
 
 func main() {
 	fmt.Println("Hello, World!")
-
-	if riscv.CreateMachine() {
-		fmt.Println("yes")
-	} else {
-		fmt.Println("no")
-	}
 }

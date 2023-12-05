@@ -24,3 +24,31 @@ func TestCreateMemory(t *testing.T) {
 		t.Fatalf("Memory buffer was not iniciated with 1024 positions")
 	}
 }
+
+func TestMemoryAccess(t *testing.T) {
+	// Small page size so I don't have to type a lot of random numbers.
+	mem := NewMemory(4)
+
+	mem.Set(4, 2, []byte{1, 2, 3, 4})
+
+	arr := mem.Get(4, 1)
+	for i, v := range []byte{1, 2, 3, 4} {
+		if v != arr[i] {
+			t.Fatalf("Wrong byte %d at position %d", arr[i], i+2)
+		}
+	}
+
+	arr = mem.Get(4, 0)
+	for i, v := range []byte{0, 0, 1, 2} {
+		if v != arr[i] {
+			t.Fatalf("Wrong byte %d at position %d", arr[i], i)
+		}
+	}
+
+	arr = mem.Get(4, 3)
+	for i, v := range []byte{3, 4, 0, 0} {
+		if v != arr[i] {
+			t.Fatalf("Wrong byte %d at position %d", arr[i], i+4)
+		}
+	}
+}
