@@ -14,6 +14,15 @@ type RiscV struct {
 	// todo: mem
 }
 
+// Sign extends the number n which has s bits. I hope gc inlines this function
+// always. The drawback of not having macros is that you cannot ensure something
+// is always inlined.
+func signExtend(n uint32, s uint8) uint32 {
+	sign := n >> (s - 1)
+	sign = (^(sign - 1)) << s
+	return n | sign
+}
+
 // Parses R-type instructions.
 // Returns in order:
 // - rd
@@ -22,7 +31,13 @@ type RiscV struct {
 // - func3
 // - func7
 func parseR(i uint32) (uint8, uint8, uint8, uint8, uint8) {
-	return 0, 0, 0, 0, 0
+	rd := uint8((i & 0b00000000000000000000111110000000) >> 7)
+	rs1 := uint8((i & 0b00000000000011111000000000000000) >> 15)
+	rs2 := uint8((i & 0b00000001111100000000000000000000) >> 20)
+	func3 := uint8((i & 0b00000000000000000111000000000000) >> 12)
+	func7 := uint8((i & 0b11111110000000000000000000000000) >> 25)
+
+	return rd, rs1, rs2, func3, func7
 }
 
 // Parses I-type instructions.
@@ -32,7 +47,12 @@ func parseR(i uint32) (uint8, uint8, uint8, uint8, uint8) {
 // - imm
 // - func3
 func parseI(i uint32) (uint8, uint8, uint32, uint8) {
-	return 0, 0, 0, 0
+	rd := uint8((i & 0b00000000000000000000111110000000) >> 7)
+	rs1 := uint8((i & 0b00000000000011111000000000000000) >> 15)
+	imm := uint32((i & 0b11111110000000000000000000000000) >> 25)
+	func3 := uint8((i & 0b00000000000000000111000000000000) >> 12)
+
+	return rd, rs1, signExtend(imm, 12), func3
 }
 
 // Parses S-type instructions.
@@ -42,7 +62,14 @@ func parseI(i uint32) (uint8, uint8, uint32, uint8) {
 // - imm
 // - func3
 func parseS(i uint32) (uint8, uint8, uint32, uint8) {
-	return 0, 0, 0, 0
+	rs1 := uint8((i & 0b00000000000011111000000000000000) >> 15)
+	rs2 := uint8((i & 0b00000001111100000000000000000000) >> 20)
+	func3 := uint8((i & 0b00000000000000000111000000000000) >> 12)
+
+	imm := (i & 0b111110000000) >> 7
+	imm = imm | ((i & 0b11111110000000000000000000000000) >> 19)
+
+	return rs1, rs2, signExtend(imm, 12), func3
 }
 
 // Parses B-type instructions.
@@ -52,7 +79,16 @@ func parseS(i uint32) (uint8, uint8, uint32, uint8) {
 // - imm
 // - func3
 func parseB(i uint32) (uint8, uint8, uint32, uint8) {
-	return 0, 0, 0, 0
+	rs1 := uint8((i & 0b00000000000011111000000000000000) >> 15)
+	rs2 := uint8((i & 0b00000001111100000000000000000000) >> 20)
+	func3 := uint8((i & 0b00000000000000000111000000000000) >> 12)
+
+	imm := (i & 0b111100000000) >> 7
+	imm = imm | ((i & 0b10000000) << 4)
+	imm = imm | ((i & 0b01111110000000000000000000000000) >> 19)
+	imm = imm | ((i & 0b10000000000000000000000000000000) >> 20)
+
+	return rs1, rs2, signExtend(imm, 13), func3
 }
 
 // Parses U-type instructions.
@@ -60,7 +96,10 @@ func parseB(i uint32) (uint8, uint8, uint32, uint8) {
 // - rd
 // - imm
 func parseU(i uint32) (uint8, uint32) {
-	return 0, 0
+	rd := uint8((i & 0b00000000000000000000111110000000) >> 7)
+	imm := uint32(i & 0b11111111111111111111000000000000)
+
+	return rd, imm
 }
 
 // Parses J-type instructions.
@@ -68,7 +107,14 @@ func parseU(i uint32) (uint8, uint32) {
 // - rd
 // - imm
 func parseJ(i uint32) (uint8, uint32) {
-	return 0, 0
+	rd := uint8((i & 0b00000000000000000000111110000000) >> 7)
+
+	imm := (i & 0b00000000000011111111000000000000)
+	imm = imm | ((i & 0b00000000000100000000000000000000) >> 9)
+	imm = imm | ((i & 0b01111111111000000000000000000000) >> 20)
+	imm = imm | ((i & 0b10000000000000000000000000000000) >> 20)
+
+	return rd, imm
 }
 
 func (m *RiscV) execArithmetic(rd uint8, rs1 uint8, rs2 uint8, func3 uint8, func7 uint8) {
