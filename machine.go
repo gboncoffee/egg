@@ -8,8 +8,12 @@ package main
 type Machine interface {
 	LoadProgram([]bytes) error
 	NextInstruction() error
-	GetMemory(uint64) ([]bytes, error)
-	SetMemory(uint64, []bytes) error
+	GetMemory(uint64) (uint64, error)
+	SetMemory(uint64, uint64) error
+	// Address than size.
+	GetMemoryChunk(uint64, uint64) ([]uint8, error)
+	SetMemoryChunk(uint64, []uint8) error
 	GetRegister(uint64) (uint64, error)
+	// Address than content.
 	SetRegister(uint64, uint64) error
 }

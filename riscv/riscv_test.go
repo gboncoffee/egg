@@ -3,39 +3,10 @@ package riscv
 import (
 	"testing"
 	"math"
+	"reflect"
 )
 
-func TestSetRegister(t *testing.T) {
-	var m RiscV
-	err := m.SetRegister(1, 42)
-	if err != nil {
-		t.Fatalf("Failed to set register 1")
-	}
-
-	err = m.SetRegister(31, 69)
-	if err != nil {
-		t.Fatalf("Failed to set register 31")
-	}
-
-	err = m.SetRegister(0, 39)
-	if err != nil {
-		t.Fatalf("Failed to set register 0")
-	}
-
-	// fails
-
-	err = m.SetRegister(32, 42)
-	if err == nil {
-		t.Fatalf("Setting register 32 did not failed")
-	}
-
-	err = m.SetRegister(1, math.MaxUint32 + 1)
-	if err == nil {
-		t.Fatalf("Setting register to more than MaxUint32 did not failed")
-	}
-}
-
-func TestGetRegister(t *testing.T) {
+func TestRegister(t *testing.T) {
 	var m RiscV
 	m.SetRegister(1, 39)
 	v, err := m.GetRegister(1)
@@ -55,5 +26,74 @@ func TestGetRegister(t *testing.T) {
 	v, err = m.GetRegister(32)
 	if err == nil {
 		t.Fatalf("No error getting register 32")
+	}
+}
+
+func TestMem(t *testing.T) {
+	var m RiscV
+
+	err := m.SetMemory(0, 69)
+	if err != nil {
+		t.Fatalf("Error setting addr 0: %v", err)
+	}
+
+	v, err := m.GetMemory(0)
+	if err != nil || v != 69 {
+		t.Fatalf("Error getting addr 0: %v - %v", err, v)
+	}
+
+	err = m.SetMemory(math.MaxUint32, 42)
+	if err != nil {
+		t.Fatalf("Error setting addr %v: %v", math.MaxUint32, err)
+	}
+
+	v, err = m.GetMemory(math.MaxUint32)
+	if err != nil || v != 42 {
+		t.Fatalf("Error getting addr %v: %v - %v", math.MaxUint32, err, v)
+	}
+
+	err = m.SetMemory(math.MaxUint32 + 1, 39)
+	if err == nil {
+		t.Fatalf("Did not failed in trying to set more than %v", math.MaxUint32)
+	}
+
+	v, err = m.GetMemory(math.MaxUint32 + 1)
+	if err == nil {
+		t.Fatalf("Did not failed in trying to set more than %v: %v", math.MaxUint32, v)
+	}
+}
+
+func TestChukedMem(t *testing.T) {
+	var m RiscV
+	arr := []uint8{69, 42, 39}
+
+	err := m.SetMemoryChunk(0, arr)
+	if err != nil {
+		t.Fatalf("Error setting addr 0: %v", err)
+	}
+
+	v, err := m.GetMemoryChunk(0, 3)
+	if err != nil || reflect.DeepEqual(v, arr) {
+		t.Fatalf("Error getting addr 0: %v - %v", err, v)
+	}
+
+	err = m.SetMemoryChunk(math.MaxUint32 - 2, arr)
+	if err != nil {
+		t.Fatalf("Error setting addr %v: %v", math.MaxUint32, err)
+	}
+
+	v, err = m.GetMemoryChunk(math.MaxUint32 - 2, 3)
+	if err != nil || reflect.DeepEqual(v, arr) {
+		t.Fatalf("Error getting addr %v: %v - %v", math.MaxUint32, err, v)
+	}
+
+	err = m.SetMemoryChunk(math.MaxUint32 - 1, arr)
+	if err == nil {
+		t.Fatalf("Did not failed in trying to set more than %v", math.MaxUint32)
+	}
+
+	v, err = m.GetMemoryChunk(math.MaxUint32 - 1, 3)
+	if err == nil {
+		t.Fatalf("Did not failed in trying to set more than %v: %v", math.MaxUint32, v)
 	}
 }

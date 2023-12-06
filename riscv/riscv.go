@@ -11,7 +11,7 @@ import (
 type RiscV struct {
 	registers [32]uint32
 	pc        uint32
-	// todo: mem
+	mem       [math.MaxUint32 + 1]uint8
 }
 
 // Sign extends the number n which has s bits. I hope gc inlines this function
@@ -200,12 +200,45 @@ func (m *RiscV) NextInstruction() error {
 	return errors.New("not implemented")
 }
 
-func (m *RiscV) GetMemory(uint64) (uint64, error) {
-	return 0, errors.New("not implemented")
+func (m *RiscV) GetMemory(addr uint64) (uint8, error) {
+	if addr > math.MaxUint32 {
+		return 0, errors.New(fmt.Sprintf("Value %v bigger than maximum 32 bit address %v", addr, math.MaxUint32))
+	}
+
+	return m.mem[addr], nil
 }
 
-func (m *RiscV) SetMemory(uint64, uint64) error {
-	return errors.New("not implemented")
+func (m *RiscV) SetMemory(addr uint64, content uint8) error {
+	if addr > math.MaxUint32 {
+		return errors.New(fmt.Sprintf("Value %v bigger than maximum 32 bit address %v", addr, math.MaxUint32))
+	}
+
+	m.mem[addr] = content
+
+	return nil
+}
+
+func (m *RiscV) GetMemoryChunk(addr uint64, size uint64) ([]uint8, error) {
+	end := addr + (size - 1)
+	if end > math.MaxUint32 {
+		return nil, errors.New(fmt.Sprintf("End address %v bigger than maximum 32 bit address %v", end, math.MaxUint32))
+	}
+
+	return m.mem[addr:end], nil
+}
+
+func (m *RiscV) SetMemoryChunk(addr uint64, content []uint8) error {
+	end := addr + (uint64(len(content)) - 1)
+	if end > math.MaxUint32 {
+		return errors.New(fmt.Sprintf("End address %v bigger than maximum 32 bit address %v", end, math.MaxUint32))
+	}
+
+	for _, b := range content {
+		m.mem[addr] = b
+		addr++
+	}
+
+	return nil
 }
 
 func (m *RiscV) GetRegister(reg uint64) (uint64, error) {
