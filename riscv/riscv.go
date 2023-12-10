@@ -118,19 +118,151 @@ func parseJ(i uint32) (uint8, uint32) {
 }
 
 func (m *RiscV) execArithmetic(rd uint8, rs1 uint8, rs2 uint8, func3 uint8, func7 uint8) {
-	panic("not implemented")
+	rs1v64, _ := m.GetRegister(uint64(rs1))
+	rs1v := int32(rs1v64)
+	rs2v64, _ := m.GetRegister(uint64(rs2))
+	rs2v := int32(rs2v64)
+	var r int32
+
+	switch func3 {
+	case 0x0:
+		if func7 == 0x20 {
+			r = rs1v - rs2v
+		} else {
+			r = rs1v + rs2v
+		}
+	case 0x1:
+		r = rs1v << rs2v
+	case 0x2:
+		// In C this would look terrible but in Go bools and ints are different.
+		if rs1v < rs2v {
+			r = 1
+		} else {
+			r = 0
+		}
+	case 0x3:
+		// Same.
+		if uint32(rs1v) < uint32(rs2v) {
+			r = 1
+		} else {
+			r = 0
+		}
+	case 0x4:
+		r = rs1v ^ rs2v
+	case 0x5:
+		if func7 == 0x20 {
+			r = rs1v >> rs2v
+		} else {
+			r = int32(uint32(rs1v) >> uint32(rs2v))
+		}
+	case 0x6:
+		r = rs1v | rs2v
+	case 0x7:
+		r = rs1v & rs2v
+	}
+
+	m.SetRegister(uint64(rd), uint64(r))
 }
 
 func (m *RiscV) execImmArithmetic(rd uint8, rs1 uint8, imm uint32, func3 uint8) {
-	panic("not implemented")
+	rs1v64, _ := m.GetRegister(uint64(rs1))
+	rs1v := int32(rs1v64)
+	immv := int32(imm)
+	var r int32
+
+	switch func3 {
+	case 0x0:
+		r = rs1v + immv
+	case 0x1:
+		r = rs1v << (immv & 0b1111)
+	case 0x2:
+		if rs1v < int32(imm) {
+			r = 1
+		} else {
+			r = 0
+		}
+	case 0x3:
+		if uint32(rs1v) < uint32(imm) {
+			r = 1
+		} else {
+			r = 0
+		}
+	case 0x4:
+		r = rs1v ^ immv
+	case 0x5:
+		if (immv & 0b111111100000) == (0x20 << 5) {
+			r = rs1v >> immv
+		} else {
+			r = int32(uint32(rs1v) >> uint32(immv))
+		}
+	case 0x6:
+		r = rs1v | immv
+	case 0x7:
+		r = rs1v & immv
+	}
+
+	m.SetRegister(uint64(rd), uint64(r))
 }
 
 func (m *RiscV) execLoad(rd uint8, rs1 uint8, imm uint32, func3 uint8) {
-	panic("not implemented")
+	rs1v, _ := m.GetRegister(uint64(rs1))
+	addr32 := uint32(rs1v) + imm
+	addr := uint64(addr32)
+	var v uint32
+
+	switch func3 {
+	case 0x0:
+		mem, _ := m.GetMemory(addr)
+		rdv, _ := m.GetRegister(uint64(rd))
+		v = (uint32(rdv) & 0xffffff00) | uint32(mem)
+	case 0x1:
+		mem, _ := m.GetMemoryChunk(addr, 2)
+		rdv, _ := m.GetRegister(uint64(rd))
+		if len(mem) != 2 {
+			return
+		}
+		v = (uint32(rdv) & 0xffff0000) | uint32(mem[0]) | (uint32(mem[1]) << 8)
+	case 0x2:
+		mem, _ := m.GetMemoryChunk(addr, 4)
+		if len(mem) != 4 {
+			return
+		}
+		v = uint32(mem[0]) |
+			(uint32(mem[1]) << 8) |
+			(uint32(mem[2]) << 16) |
+			(uint32(mem[3]) << 24)
+	case 0x4:
+		mem, _ := m.GetMemory(addr)
+		v = uint32(mem)
+	case 0x5:
+		mem, _ := m.GetMemoryChunk(addr, 2)
+		v = uint32(mem[0]) | (uint32(mem[1]) << 8)
+	}
+
+	m.SetRegister(uint64(rd), uint64(v))
 }
 
 func (m *RiscV) execStore(rs1 uint8, rs2 uint8, imm uint32, func3 uint8) {
-	panic("not implemented")
+	rs1v, _ := m.GetRegister(uint64(rs1))
+	addr32 := uint32(rs1v) + imm
+	addr := uint64(addr32)
+	rs2v, _ := m.GetRegister(uint64(rs2))
+
+	switch func3 {
+	case 0x0:
+		m.SetMemory(addr, uint8(rs2v))
+	case 0x1:
+		v := []uint8{uint8(rs2v), uint8(rs2v >> 8)}
+		m.SetMemoryChunk(addr, v)
+	case 0x2:
+		v := []uint8{
+			uint8(rs2v),
+			uint8(rs2v >> 8),
+			uint8(rs2v >> 16),
+			uint8(rs2v >> 24),
+		}
+		m.SetMemoryChunk(addr, v)
+	}
 }
 
 func (m *RiscV) execBranch(rs1 uint8, rs2 uint8, imm uint32, func3 uint8) {

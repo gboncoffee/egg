@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/gboncoffee/egg/riscv"
+	// "github.com/gboncoffee/egg/riscv"
 )
 
 func main() {

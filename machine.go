@@ -6,7 +6,7 @@ package main
 // need to be stored on the heap. Converting from any size less than and to 64
 // bits can be done with a single x86 instruction.
 type Machine interface {
-	LoadProgram([]bytes) error
+	LoadProgram([]uint8) error
 	NextInstruction() error
 	GetMemory(uint64) (uint64, error)
 	SetMemory(uint64, uint64) error
