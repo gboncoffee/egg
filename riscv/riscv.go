@@ -49,7 +49,7 @@ func parseR(i uint32) (uint8, uint8, uint8, uint8, uint8) {
 func parseI(i uint32) (uint8, uint8, uint32, uint8) {
 	rd := uint8((i & 0b00000000000000000000111110000000) >> 7)
 	rs1 := uint8((i & 0b00000000000011111000000000000000) >> 15)
-	imm := uint32((i & 0b11111110000000000000000000000000) >> 25)
+	imm := uint32((i & 0b11111111111100000000000000000000) >> 20)
 	func3 := uint8((i & 0b00000000000000000111000000000000) >> 12)
 
 	return rd, rs1, signExtend(imm, 12), func3
@@ -162,6 +162,8 @@ func (m *RiscV) execArithmetic(rd uint8, rs1 uint8, rs2 uint8, func3 uint8, func
 	}
 
 	m.SetRegister(uint64(rd), uint64(r))
+
+	m.pc += 4
 }
 
 func (m *RiscV) execImmArithmetic(rd uint8, rs1 uint8, imm uint32, func3 uint8) {
@@ -202,6 +204,8 @@ func (m *RiscV) execImmArithmetic(rd uint8, rs1 uint8, imm uint32, func3 uint8) 
 	}
 
 	m.SetRegister(uint64(rd), uint64(r))
+
+	m.pc += 4
 }
 
 func (m *RiscV) execLoad(rd uint8, rs1 uint8, imm uint32, func3 uint8) {
@@ -240,6 +244,8 @@ func (m *RiscV) execLoad(rd uint8, rs1 uint8, imm uint32, func3 uint8) {
 	}
 
 	m.SetRegister(uint64(rd), uint64(v))
+
+	m.pc += 4
 }
 
 func (m *RiscV) execStore(rs1 uint8, rs2 uint8, imm uint32, func3 uint8) {
@@ -263,26 +269,63 @@ func (m *RiscV) execStore(rs1 uint8, rs2 uint8, imm uint32, func3 uint8) {
 		}
 		m.SetMemoryChunk(addr, v)
 	}
+
+	m.pc += 4
 }
 
 func (m *RiscV) execBranch(rs1 uint8, rs2 uint8, imm uint32, func3 uint8) {
-	panic("not implemented")
+	rs1v64, _ := m.GetRegister(uint64(rs1))
+	rs1v := int32(rs1v64)
+	rs2v64, _ := m.GetRegister(uint64(rs2))
+	rs2v := int32(rs2v64)
+
+	switch func3 {
+	case 0x0:
+		if rs1v == rs2v {
+			m.pc = (m.pc + imm) - 4
+		}
+	case 0x1:
+		if rs1v != rs2v {
+			m.pc = (m.pc + imm) - 4
+		}
+	case 0x4:
+		if rs1v < rs2v {
+			m.pc = (m.pc + imm) - 4
+		}
+	case 0x5:
+		if rs1v >= rs2v {
+			m.pc = (m.pc + imm) - 4
+		}
+	case 0x6:
+		if uint32(rs1v) < uint32(rs2v) {
+			m.pc = (m.pc + imm) - 4
+		}
+	case 0x7:
+		if uint32(rs1v) >= uint32(rs2v) {
+			m.pc = (m.pc + imm) - 4
+		}
+	}
+
+	m.pc += 4
 }
 
 func (m *RiscV) execJal(rd uint8, imm uint32) {
-	panic("not implemented")
+	m.SetRegister(uint64(rd), uint64(m.pc + 4))
+	m.pc += imm
 }
 
 func (m *RiscV) execJalr(rd uint8, rs1 uint8, imm uint32) {
-	panic("not implemented")
+	m.SetRegister(uint64(rd), uint64(m.pc + 4))
+	rs1v, _ := m.GetRegister(uint64(rs1))
+	m.pc = uint32(rs1v) + imm
 }
 
 func (m *RiscV) execLui(rd uint8, imm uint32) {
-	panic("not implemented")
+	m.SetRegister(uint64(rd), uint64(imm) << 12)
 }
 
 func (m *RiscV) execAuipc(rd uint8, imm uint32) {
-	panic("not implemented")
+	m.SetRegister(uint64(rd), uint64(m.pc) + (uint64(imm) << 12))
 }
 
 func (m *RiscV) execute(i uint32) error {
@@ -324,12 +367,21 @@ func (m *RiscV) execute(i uint32) error {
 	return nil
 }
 
-func (m *RiscV) LoadProgram(uint64) error {
-	return errors.New("not implemented")
+func (m *RiscV) LoadProgram(program []uint8) error {
+	m.pc = 0
+	return m.SetMemoryChunk(0, program)
 }
 
 func (m *RiscV) NextInstruction() error {
-	return errors.New("not implemented")
+	iarr, err := m.GetMemoryChunk(uint64(m.pc), 4)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not load 4 bytes from address at PC: %x", m.pc))
+	}
+
+	i := uint32(iarr[0]) | uint32(iarr[1] << 8) | uint32(iarr[2] << 16) | uint32(iarr[3] << 24)
+	m.execute(i)
+
+	return nil
 }
 
 func (m *RiscV) GetMemory(addr uint64) (uint8, error) {
@@ -386,12 +438,8 @@ func (m *RiscV) SetRegister(reg uint64, content uint64) error {
 		return errors.New(fmt.Sprintf("No such register: %d. RISC-V has only 32 registers.", reg))
 	}
 
-	if content > math.MaxUint32 {
-		return errors.New(fmt.Sprintf("Number beyond 32 limit: %d. RISC-V has only 32 bit registers.", content))
-	}
-
 	if reg != 0 {
-		m.registers[reg] = uint32(content) // will not overflow, we already checked
+		m.registers[reg] = uint32(content) // Overflow is a feature.
 	}
 
 	return nil

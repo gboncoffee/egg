@@ -63,7 +63,7 @@ func TestMem(t *testing.T) {
 	}
 }
 
-func TestChukedMem(t *testing.T) {
+func TestChunkedMem(t *testing.T) {
 	var m RiscV
 	arr := []uint8{69, 42, 39}
 
@@ -95,5 +95,38 @@ func TestChukedMem(t *testing.T) {
 	v, err = m.GetMemoryChunk(math.MaxUint32 - 1, 3)
 	if err == nil {
 		t.Fatalf("Did not failed in trying to set more than %v: %v", math.MaxUint32, v)
+	}
+}
+
+func TestArithmeticInstructions(t *testing.T) {
+	// TODO: Maybe test more than only addi, add and sub?
+	var m RiscV
+
+	// addi x6, x0, 0x45
+	m.execute(0x04500313)
+	r, _ := m.GetRegister(6)
+	if r != 0x45 {
+		t.Fatalf("Failed addi: %x", r)
+	}
+
+	// addi x7, x0, 0xffffffd6 (-42)
+	m.execute(0xfd600393)
+	r, _ = m.GetRegister(7)
+	if r != 0x00000000ffffffd6 {
+		t.Fatalf("Failed addi: %x", r)
+	}
+
+	// add x6, x6, x7
+	m.execute(0x00730333)
+	r, _ = m.GetRegister(6)
+	if r != 27 {
+		t.Fatalf("Failed addi: %x", r)
+	}
+
+	// sub x6, x6, x7
+	m.execute(0x40730333)
+	r, _ = m.GetRegister(6)
+	if r != 0x45 {
+		t.Fatalf("Failed addi: %x", r)
 	}
 }
