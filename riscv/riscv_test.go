@@ -73,7 +73,7 @@ func TestChunkedMem(t *testing.T) {
 	}
 
 	v, err := m.GetMemoryChunk(0, 3)
-	if err != nil || reflect.DeepEqual(v, arr) {
+	if err != nil || !reflect.DeepEqual(v, arr) {
 		t.Fatalf("Error getting addr 0: %v - %v", err, v)
 	}
 
@@ -83,7 +83,7 @@ func TestChunkedMem(t *testing.T) {
 	}
 
 	v, err = m.GetMemoryChunk(math.MaxUint32 - 2, 3)
-	if err != nil || reflect.DeepEqual(v, arr) {
+	if err != nil || !reflect.DeepEqual(v, arr) {
 		t.Fatalf("Error getting addr %v: %v - %v", math.MaxUint32, err, v)
 	}
 

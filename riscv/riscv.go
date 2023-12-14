@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
+
+	"github.com/gboncoffee/egg/machine"
 )
 
 // The RiscV struct implements the machine interface needed by the EGG emulator.
@@ -328,7 +330,7 @@ func (m *RiscV) execAuipc(rd uint8, imm uint32) {
 	m.SetRegister(uint64(rd), uint64(m.pc) + (uint64(imm) << 12))
 }
 
-func (m *RiscV) execute(i uint32) error {
+func (m *RiscV) execute(i uint32) (*machine.Call, error) {
 	opcode := i & 0b01111111
 	switch opcode {
 	case 0b0110011:
@@ -359,12 +361,21 @@ func (m *RiscV) execute(i uint32) error {
 		rd, imm := parseU(i)
 		m.execAuipc(rd, imm)
 	case 0b1110011:
-		return errors.New("ecalls not implemented")
+		_, _, imm, _ := parseI(i)
+		num, _ := m.GetRegister(17)
+		a1, _ := m.GetRegister(10)
+		a2, _ := m.GetRegister(11)
+		if imm == 1 {
+			num = machine.SYS_BREAK
+		}
+		call := machine.Call{num, a1, a2}
+
+		return &call, nil
 	default:
-		return errors.New(fmt.Sprintf("Unknown opcode: %b", opcode))
+		return nil, errors.New(fmt.Sprintf("Unknown opcode: %b", opcode))
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (m *RiscV) LoadProgram(program []uint8) error {
@@ -372,16 +383,15 @@ func (m *RiscV) LoadProgram(program []uint8) error {
 	return m.SetMemoryChunk(0, program)
 }
 
-func (m *RiscV) NextInstruction() error {
+func (m *RiscV) NextInstruction() (*machine.Call, error) {
 	iarr, err := m.GetMemoryChunk(uint64(m.pc), 4)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not load 4 bytes from address at PC: %x", m.pc))
+		return nil, errors.New(fmt.Sprintf("Could not load 4 bytes from address at PC: %x", m.pc))
 	}
 
 	i := uint32(iarr[0]) | uint32(iarr[1] << 8) | uint32(iarr[2] << 16) | uint32(iarr[3] << 24)
-	m.execute(i)
 
-	return nil
+	return m.execute(i)
 }
 
 func (m *RiscV) GetMemory(addr uint64) (uint8, error) {
@@ -408,7 +418,7 @@ func (m *RiscV) GetMemoryChunk(addr uint64, size uint64) ([]uint8, error) {
 		return nil, errors.New(fmt.Sprintf("End address %v bigger than maximum 32 bit address %v", end, math.MaxUint32))
 	}
 
-	return m.mem[addr:end], nil
+	return m.mem[addr:(end + 1)], nil
 }
 
 func (m *RiscV) SetMemoryChunk(addr uint64, content []uint8) error {
