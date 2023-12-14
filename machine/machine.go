@@ -1,4 +1,5 @@
-package main
+// Package egg/machine has the interface used by EGG backends.
+package machine
 
 // Interface that machine structs are required to implement to work with EGG.
 //
@@ -8,8 +9,8 @@ package main
 type Machine interface {
 	LoadProgram([]uint8) error
 	NextInstruction() error
-	GetMemory(uint64) (uint64, error)
-	SetMemory(uint64, uint64) error
+	GetMemory(uint64) (uint8, error)
+	SetMemory(uint64, uint8) error
 	// Address than size.
 	GetMemoryChunk(uint64, uint64) ([]uint8, error)
 	SetMemoryChunk(uint64, []uint8) error
