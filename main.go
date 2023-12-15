@@ -5,6 +5,8 @@ import (
 	"log"
 	"fmt"
 	"os"
+	"bufio"
+	"io"
 
 	"github.com/gboncoffee/egg/riscv"
 	"github.com/gboncoffee/egg/machine"
@@ -29,8 +31,22 @@ func runMachine(m machine.Machine) {
 		}
 
 		if call != nil {
-			if call.Number == machine.SYS_BREAK {
+			switch call.Number {
+			case machine.SYS_BREAK:
 				return
+			case machine.SYS_READ:
+				// Lol I'm using 3 std modules just to read from stdin.
+				addr := call.Arg1
+				size := call.Arg2
+				buf := make([]uint8, size)
+				reader := bufio.NewReader(os.Stdin)
+				io.ReadFull(reader, buf)
+				m.SetMemoryChunk(addr, buf)
+			case machine.SYS_WRITE:
+				addr := call.Arg1
+				size := call.Arg2
+				buf, _ := m.GetMemoryChunk(addr, size)
+				fmt.Print(string(buf))
 			}
 		}
 	}
@@ -40,6 +56,7 @@ func main() {
 	var architeture string
 	var debug bool
 	var list bool
+	var ver bool
 	var m machine.Machine
 
 	log.SetFlags(0)
@@ -48,6 +65,8 @@ func main() {
 	flag.StringVar(&architeture, "a", "riscv", "Select architeture to use (shorthand).")
 	flag.BoolVar(&list, "list-archs", false, "Lists currently supported architetures and quit.")
 	flag.BoolVar(&list, "l", false, "Lists currently supported architetures (shorthand).")
+	flag.BoolVar(&ver, "version", false, "Show current version and quit.")
+	flag.BoolVar(&ver, "v", false, "Show current version and quit (shorthand).")
 	flag.BoolVar(&debug, "debug", false, "Enter debugger upon startup.")
 	flag.BoolVar(&debug, "d", false, "Enter debugger upon startup (shorthand).")
 
@@ -56,6 +75,11 @@ func main() {
 	if list {
 		version()
 		listArchs()
+		return
+	}
+
+	if ver {
+		version()
 		return
 	}
 
