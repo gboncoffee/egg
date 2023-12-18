@@ -52,6 +52,15 @@ func runMachine(m machine.Machine) {
 	}
 }
 
+func readToString(filename string) (string, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
 func main() {
 	var architeture string
 	var debug bool
@@ -100,9 +109,27 @@ func main() {
 		os.Exit(1)
 	}
 
+	asm, err := readToString(file)
+	if err != nil {
+		log.Println(fmt.Sprintf("Could not read supplied file %v", file))
+		os.Exit(1)
+	}
+
+	code, sym, err := m.Assemble(asm)
+	if err != nil {
+		log.Println("Error assembling file %v: %v", file, err)
+		os.Exit(1)
+	}
+
+	err = m.LoadProgram(code)
+	if err != nil {
+		log.Println("Error loading assembled program: %v", err)
+		os.Exit(1)
+	}
+
 	if debug {
 		// Hello fellow Acme user. Plumb this: debugger.go:/debugMachine
-		debugMachine(m)
+		debugMachine(m, sym)
 	} else {
 		runMachine(m)
 	}

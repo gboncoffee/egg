@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 
 	"github.com/gboncoffee/egg/machine"
+	"github.com/gboncoffee/egg/assembler"
 )
 
 // The RiscV struct implements the machine interface needed by the EGG emulator.
@@ -453,4 +455,79 @@ func (m *RiscV) SetRegister(reg uint64, content uint64) error {
 	}
 
 	return nil
+}
+
+func assemble(t []assembler.ResolvedToken) ([]uint8, error) {
+	return nil, errors.New("not implemented")
+}
+
+func parseRegisterArg(arg string) (uint64, error) {
+	n, err := strconv.Atoi(arg[1:])
+	if err != nil {
+		return 0, errors.New(fmt.Sprintf("No such register: %v", arg))
+	}
+
+	switch arg[0] {
+	case 't':
+		if n < 3 {
+			return uint64(n + 5), nil
+		}
+		return uint64(n + 25), nil
+	case 's':
+		switch n {
+		case 0:
+			return 8, nil
+		case 1:
+			return 9, nil
+		}
+		return uint64(n + 16), nil
+	case 'a':
+		return uint64(n + 10), nil
+	}
+
+	return 0, errors.New(fmt.Sprintf("No such register: %v", arg))
+}
+
+func translateArgs(arg string) (uint64, error) {
+	if len(arg) < 1 {
+		return 0, errors.New("Empty argument")
+	}
+
+	if 0x30 <= arg[0] && arg[0] <= 0x39 {
+		n, err := strconv.ParseInt(arg, 0, 64)
+		return uint64(n), err
+	}
+
+	switch arg {
+	case "zero":
+		return 0, nil
+	case "ra":
+		return 1, nil
+	case "sp":
+		return 2, nil
+	case "gp":
+		return 3, nil
+	case "tp":
+		return 4, nil
+	case "fp":
+		return 8, nil
+	}
+
+	return parseRegisterArg(arg)
+}
+
+func (m *RiscV) Assemble(asm string) ([]uint8, []assembler.DebuggerToken, error) {
+	tokens := assembler.Tokenize(asm)
+	rt, err := assembler.ResolveTokensFixedSize(tokens, 4, translateArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	symbs := assembler.CreateDebugTokensFixedSize(tokens, 4)
+	code, err := assemble(rt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return code, symbs, nil
 }

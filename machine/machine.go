@@ -1,6 +1,8 @@
 // Package egg/machine has the interface and syscall struct used by EGG backends.
 package machine
 
+import "github.com/gboncoffee/egg/assembler"
+
 // Interface that machine structs are required to implement to work with EGG.
 //
 // It always use uint64 because if we used variable-lengh []bytes, they would
@@ -17,6 +19,8 @@ type Machine interface {
 	GetRegister(uint64) (uint64, error)
 	// Address than content.
 	SetRegister(uint64, uint64) error
+	//GetRegisterNumber(string) uint64
+	Assemble(string) ([]uint8, []assembler.DebuggerToken, error)
 }
 
 // Syscalls numbers. ISAs with specific calls for BREAK should send a BREAK on them.
