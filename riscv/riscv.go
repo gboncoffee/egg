@@ -687,6 +687,36 @@ func assembleJalr(t assembler.ResolvedToken) (uint32, error) {
 	return code, nil
 }
 
+func assembleU(t assembler.ResolvedToken) (uint32, error) {
+	if len(t.Args) != 2 {
+		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction '%s', expected 2 arguments", t.Value))
+	}
+
+	var code uint32
+	if t.Value == "lui" {
+		code = 0b0110111
+	} else {
+		code = 0b0010111
+	}
+	code = code | uint32(t.Args[0] << 7)
+	code = code | uint32(t.Args[1] << 12)
+
+	return code, nil
+}
+
+func assembleCall(t assembler.ResolvedToken) (uint32, error) {
+	if len(t.Args) != 0 {
+		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction '%s', expected no argument", t.Value))
+	}
+
+	code := uint32(0b1110011)
+	if t.Value == "ebreak" {
+		code = code | (1 << 20)
+	}
+
+	return code, nil
+}
+
 func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) error {
 	bin := uint32(0)
 	var err error
@@ -706,10 +736,8 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 		bin, err = assembleJal(t)
 	case "jalr":
 		bin, err = assembleJalr(t)
-	case "lui":
-		bin, err = assembleLui(t)
-	case "auipc":
-		bin, err = assembleAuipc(t)
+	case "lui", "auipc":
+		bin, err = assembleU(t)
 	case "ecall", "ebreak":
 		bin, err = assembleCall(t)
 	}
