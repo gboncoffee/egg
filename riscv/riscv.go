@@ -7,8 +7,8 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/gboncoffee/egg/machine"
 	"github.com/gboncoffee/egg/assembler"
+	"github.com/gboncoffee/egg/machine"
 )
 
 // The RiscV struct implements the machine interface needed by the EGG emulator.
@@ -25,6 +25,12 @@ func signExtend(n uint32, s uint8) uint32 {
 	sign := n >> (s - 1)
 	sign = (^(sign - 1)) << s
 	return n | sign
+}
+
+func signExtend64(n uint32) uint64 {
+	sign := n >> 31
+	sign64 := uint64(^(sign - 1)) << 32
+	return uint64(n) | sign64
 }
 
 // Parses R-type instructions.
@@ -128,41 +134,78 @@ func (m *RiscV) execArithmetic(rd uint8, rs1 uint8, rs2 uint8, func3 uint8, func
 	rs2v := int32(rs2v64)
 	var r int32
 
-	switch func3 {
-	case 0x0:
-		if func7 == 0x20 {
-			r = rs1v - rs2v
-		} else {
-			r = rs1v + rs2v
+	if func7 == 0x1 {
+		switch func3 {
+		case 0x0:
+			r = int32(uint64(rs1v) * uint64(rs2v))
+		case 0x1:
+			r = int32((int64(signExtend64(uint32(rs1v))) * int64(signExtend64(uint32(rs2v)))) >> 32)
+		case 0x2:
+			r = int32((int64(signExtend64(uint32(rs1v))) * int64(rs2v)) >> 32)
+		case 0x3:
+			r = int32(uint64(rs1v) * uint64(rs2v) >> 32)
+		case 0x4:
+			if rs2v == 0 {
+				r = 0
+			} else {
+				r = rs1v / rs2v
+			}
+		case 0x5:
+			if rs2v == 0 {
+				r = 0
+			} else {
+				r = int32(uint32(rs1v) / uint32(rs2v))
+			}
+		case 0x6:
+			if rs2v == 0 {
+				r = 0
+			} else {
+				r = rs1v % rs2v
+			}
+		case 0x7:
+			if rs2v == 0 {
+				r = 0
+			} else {
+				r = int32(uint32(rs1v) % uint32(rs2v))
+			}
 		}
-	case 0x1:
-		r = rs1v << rs2v
-	case 0x2:
-		// In C this would look terrible but in Go bools and ints are different.
-		if rs1v < rs2v {
-			r = 1
-		} else {
-			r = 0
+	} else {
+		switch func3 {
+		case 0x0:
+			if func7 == 0x20 {
+				r = rs1v - rs2v
+			} else {
+				r = rs1v + rs2v
+			}
+		case 0x1:
+			r = rs1v << rs2v
+		case 0x2:
+			// In C this would look terrible but in Go bools and ints are different.
+			if rs1v < rs2v {
+				r = 1
+			} else {
+				r = 0
+			}
+		case 0x3:
+			// Same.
+			if uint32(rs1v) < uint32(rs2v) {
+				r = 1
+			} else {
+				r = 0
+			}
+		case 0x4:
+			r = rs1v ^ rs2v
+		case 0x5:
+			if func7 == 0x20 {
+				r = rs1v >> rs2v
+			} else {
+				r = int32(uint32(rs1v) >> uint32(rs2v))
+			}
+		case 0x6:
+			r = rs1v | rs2v
+		case 0x7:
+			r = rs1v & rs2v
 		}
-	case 0x3:
-		// Same.
-		if uint32(rs1v) < uint32(rs2v) {
-			r = 1
-		} else {
-			r = 0
-		}
-	case 0x4:
-		r = rs1v ^ rs2v
-	case 0x5:
-		if func7 == 0x20 {
-			r = rs1v >> rs2v
-		} else {
-			r = int32(uint32(rs1v) >> uint32(rs2v))
-		}
-	case 0x6:
-		r = rs1v | rs2v
-	case 0x7:
-		r = rs1v & rs2v
 	}
 
 	m.SetRegister(uint64(rd), uint64(r))
@@ -314,22 +357,22 @@ func (m *RiscV) execBranch(rs1 uint8, rs2 uint8, imm uint32, func3 uint8) {
 }
 
 func (m *RiscV) execJal(rd uint8, imm uint32) {
-	m.SetRegister(uint64(rd), uint64(m.pc + 4))
+	m.SetRegister(uint64(rd), uint64(m.pc+4))
 	m.pc += imm
 }
 
 func (m *RiscV) execJalr(rd uint8, rs1 uint8, imm uint32) {
-	m.SetRegister(uint64(rd), uint64(m.pc + 4))
+	m.SetRegister(uint64(rd), uint64(m.pc+4))
 	rs1v, _ := m.GetRegister(uint64(rs1))
 	m.pc = uint32(rs1v) + imm
 }
 
 func (m *RiscV) execLui(rd uint8, imm uint32) {
-	m.SetRegister(uint64(rd), uint64(imm) << 12)
+	m.SetRegister(uint64(rd), uint64(imm)<<12)
 }
 
 func (m *RiscV) execAuipc(rd uint8, imm uint32) {
-	m.SetRegister(uint64(rd), uint64(m.pc) + (uint64(imm) << 12))
+	m.SetRegister(uint64(rd), uint64(m.pc)+(uint64(imm)<<12))
 }
 
 func (m *RiscV) execute(i uint32) (*machine.Call, error) {
@@ -391,7 +434,7 @@ func (m *RiscV) NextInstruction() (*machine.Call, error) {
 		return nil, errors.New(fmt.Sprintf("Could not load 4 bytes from address at PC: %x", m.pc))
 	}
 
-	i := uint32(iarr[0]) | uint32(iarr[1] << 8) | uint32(iarr[2] << 16) | uint32(iarr[3] << 24)
+	i := uint32(iarr[0]) | uint32(iarr[1]<<8) | uint32(iarr[2]<<16) | uint32(iarr[3]<<24)
 
 	return m.execute(i)
 }
@@ -457,8 +500,259 @@ func (m *RiscV) SetRegister(reg uint64, content uint64) error {
 	return nil
 }
 
+func assembleArithmetic(t assembler.ResolvedToken) (uint32, error) {
+	if len(t.Args) != 3 {
+		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction '%s', expected 3 arguments", t.Value))
+	}
+
+	code := uint32(0b0110011)
+	code = code | uint32(t.Args[0] << 7)
+	code = code | uint32(t.Args[1] << 15)
+	code = code | uint32(t.Args[2] << 20)
+
+	func3 := uint32(0) // add and sub
+	var func7 uint32
+	switch t.Value {
+	case "sub":
+		func7 = 0x20
+	case "sll":
+		func3 = 1
+	case "slt":
+		func3 = 2
+	case "sltu":
+		func3 = 3
+	case "xor":
+		func3 = 4
+	case "sra":
+		func7 = 0x20
+		fallthrough
+	case "srl":
+		func3 = 5
+	case "or":
+		func3 = 6
+	case "and":
+		func3 = 7
+	}
+
+	code = code | (func3 << 12)
+	code = code | (func7 << 25)
+
+	return code, nil
+}
+
+func assembleArithmeticImm(t assembler.ResolvedToken) (uint32, error) {
+	if len(t.Args) != 3 {
+		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction '%s', expected 3 arguments", t.Value))
+	}
+
+	code := uint32(0b0010011)
+	code = code | uint32(t.Args[0] << 7)
+	code = code | uint32(t.Args[1] << 15)
+	code = code | uint32(t.Args[2] << 20)
+
+	func3 := uint32(0) // addi
+	switch t.Value {
+	case "xori":
+		func3 = 4
+	case "ori":
+		func3 = 6
+	case "andi":
+		func3 = 7
+	case "slli":
+		func3 = 1
+	case "srai":
+		code = code | uint32(0x20 << 5)
+		fallthrough
+	case "srli":
+		func3 = 5
+	case "slti":
+		func3 = 2
+	case "sltiu":
+		func3 = 3
+	}
+
+	code = code | (func3 << 12)
+
+	return code, nil
+}
+
+func assembleLoad(t assembler.ResolvedToken) (uint32, error) {
+	if len(t.Args) != 3 {
+		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction '%s', expected 3 arguments", t.Value))
+	}
+
+	code := uint32(0b0000011)
+	code = code | uint32(t.Args[0] << 7)
+	code = code | uint32(t.Args[1] << 15)
+	code = code | uint32(t.Args[2] << 20)
+
+	func3 := uint32(0) // lb
+	switch t.Value {
+	case "lh":
+		func3 = 1
+	case "lw":
+		func3 = 2
+	case "lbu":
+		func3 = 4
+	case "lhu":
+		func3 = 5
+	}
+
+	code = code | (func3 << 12)
+
+	return code, nil
+}
+
+func assembleStore(t assembler.ResolvedToken) (uint32, error) {
+	if len(t.Args) != 3 {
+		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction '%s', expected 3 arguments", t.Value))
+	}
+
+	code := uint32(0b0100011)
+	code = code | uint32(t.Args[1] << 15)
+	code = code | uint32(t.Args[2] << 20)
+	code = code | uint32((t.Args[3] & 0b11111) << 7)
+	code = code | uint32((t.Args[3] & 0b111111100000 << 20))
+
+	func3 := uint32(0) // sb
+	switch t.Value {
+	case "sh":
+		func3 = 1
+	case "sw":
+		func3 = 2
+	}
+
+	code = code | (func3 << 12)
+
+	return code, nil
+}
+
+func assembleBranch(t assembler.ResolvedToken) (uint32, error) {
+	if len(t.Args) != 3 {
+		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction '%s', expected 3 arguments", t.Value))
+	}
+
+	code := uint32(0b1100011)
+	code = code | uint32(t.Args[1] << 15)
+	code = code | uint32(t.Args[2] << 20)
+	code = code | uint32((t.Args[3] & 0b100000000000) >> 5)
+	code = code | uint32((t.Args[3] & 0b11110) << 7)
+	code = code | uint32((t.Args[3] & 0b1000000000000) << 19)
+	code = code | uint32((t.Args[3] & 0b11111100000) << 20)
+
+	func3 := uint32(0) // beq
+	switch t.Value {
+	case "bne":
+		func3 = 1
+	case "blt":
+		func3 = 4
+	case "bge":
+		func3 = 5
+	case "bltu":
+		func3 = 6
+	case "bgeu":
+		func3 = 7
+	}
+
+	code = code | (func3 << 12)
+
+	return code, nil
+}
+
+func assembleJal(t assembler.ResolvedToken) (uint32, error) {
+	if len(t.Args) != 2 {
+		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction '%s', expected 2 arguments", t.Value))
+	}
+
+	code := uint32(0b1101111)
+	code = code | uint32(t.Args[0] << 7)
+	code = code | uint32(t.Args[1] & 0b11111111000000000000)
+	code = code | uint32((t.Args[1] & 0b100000000000) << 9)
+	code = code | uint32((t.Args[1] & 0b11111111110) << 11)
+	code = code | uint32((t.Args[1] & 0b100000000000000000000) << 12)
+
+	return code, nil
+}
+
+func assembleJalr(t assembler.ResolvedToken) (uint32, error) {
+	if len(t.Args) != 3 {
+		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction '%s', expected 3 arguments", t.Value))
+	}
+
+	code := uint32(0b1100111)
+	code = code | uint32(t.Args[0] << 7)
+	code = code | uint32(t.Args[1] << 15)
+	code = code | uint32(t.Args[2] << 20)
+
+	return code, nil
+}
+
+func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) error {
+	bin := uint32(0)
+	var err error
+
+	switch t.Value {
+	case "add", "sub", "xor", "or", "and", "sll", "srl", "sra", "slt", "sltu":
+		bin, err = assembleArithmetic(t)
+	case "addi", "xori", "ori", "andi", "slli", "srli", "srai", "slti", "sltiu":
+		bin, err = assembleArithmeticImm(t)
+	case "lb", "lh", "lw", "lbu", "lhu":
+		bin, err = assembleLoad(t)
+	case "sb", "sh", "sw":
+		bin, err = assembleStore(t)
+	case "beq", "bne", "blt", "bge", "bltu", "bgeu":
+		bin, err = assembleBranch(t)
+	case "jal":
+		bin, err = assembleJal(t)
+	case "jalr":
+		bin, err = assembleJalr(t)
+	case "lui":
+		bin, err = assembleLui(t)
+	case "auipc":
+		bin, err = assembleAuipc(t)
+	case "ecall", "ebreak":
+		bin, err = assembleCall(t)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	code[addr] = uint8(bin & 0xff)
+	code[addr+1] = uint8(bin & 0xff00)
+	code[addr+2] = uint8(bin & 0xff0000)
+	code[addr+3] = uint8(bin & 0xff000000)
+
+	return nil
+}
+
 func assemble(t []assembler.ResolvedToken) ([]uint8, error) {
-	return nil, errors.New("not implemented")
+	// Pre calculate our size. Why not?
+	size := uint64(0)
+	for _, i := range t {
+		size += i.Size
+	}
+
+	var err error
+
+	code := make([]uint8, size)
+	addr := 0
+	for _, i := range t {
+		if i.Type == assembler.TOKEN_INSTRUCTION {
+			err = assembleInstruction(code, addr, i)
+			if err != nil {
+				return nil, err
+			}
+			addr += 4
+		} else {
+			for _, c := range []uint8(i.Value) {
+				code[addr] = c
+				addr++
+			}
+		}
+	}
+
+	return code, nil
 }
 
 func parseRegisterArg(arg string) (uint64, error) {
