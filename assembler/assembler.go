@@ -73,7 +73,7 @@ type ArgTranslateFunction func(string) (uint64, error)
 // Resolves labels and arguments for fixed-size instructions with size bytes.
 // ArgTranslateFunction translates arguments into numbers.
 func ResolveTokensFixedSize(tokens []Token, size uint64, arg ArgTranslateFunction) ([]ResolvedToken, error) {
-	var labels map[string]uint64
+	labels := make(map[string]uint64)
 	addr := uint64(0)
 	for _, t := range tokens {
 		switch (t.Type) {

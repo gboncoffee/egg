@@ -561,7 +561,7 @@ func assembleArithmeticImm(t assembler.ResolvedToken) (uint32, error) {
 	case "slli":
 		func3 = 1
 	case "srai":
-		code = code | uint32(0x20 << 5)
+		code = code | uint32(0x20 << 25 )
 		fallthrough
 	case "srli":
 		func3 = 5
@@ -609,10 +609,10 @@ func assembleStore(t assembler.ResolvedToken) (uint32, error) {
 	}
 
 	code := uint32(0b0100011)
-	code = code | uint32(t.Args[1] << 15)
-	code = code | uint32(t.Args[2] << 20)
-	code = code | uint32((t.Args[3] & 0b11111) << 7)
-	code = code | uint32((t.Args[3] & 0b111111100000 << 20))
+	code = code | uint32(t.Args[0] << 15)
+	code = code | uint32(t.Args[1] << 20)
+	code = code | uint32((t.Args[2] & 0b11111) << 7)
+	code = code | uint32((t.Args[2] & 0b111111100000 << 20))
 
 	func3 := uint32(0) // sb
 	switch t.Value {
@@ -627,18 +627,20 @@ func assembleStore(t assembler.ResolvedToken) (uint32, error) {
 	return code, nil
 }
 
-func assembleBranch(t assembler.ResolvedToken) (uint32, error) {
+func assembleBranch(t assembler.ResolvedToken, addr int) (uint32, error) {
 	if len(t.Args) != 3 {
 		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction '%s', expected 3 arguments", t.Value))
 	}
 
+	t.Args[2] = uint64(signExtend64(uint32(t.Args[2])) - uint64(addr))
+
 	code := uint32(0b1100011)
-	code = code | uint32(t.Args[1] << 15)
-	code = code | uint32(t.Args[2] << 20)
-	code = code | uint32((t.Args[3] & 0b100000000000) >> 5)
-	code = code | uint32((t.Args[3] & 0b11110) << 7)
-	code = code | uint32((t.Args[3] & 0b1000000000000) << 19)
-	code = code | uint32((t.Args[3] & 0b11111100000) << 20)
+	code = code | uint32(t.Args[0] << 15)
+	code = code | uint32(t.Args[1] << 20)
+	code = code | uint32((t.Args[2] & 0b100000000000) >> 4)
+	code = code | uint32((t.Args[2] & 0b11110) << 7)
+	code = code | uint32((t.Args[2] & 0b1000000000000) << 19)
+	code = code | uint32((t.Args[2] & 0b11111100000) << 20)
 
 	func3 := uint32(0) // beq
 	switch t.Value {
@@ -659,17 +661,19 @@ func assembleBranch(t assembler.ResolvedToken) (uint32, error) {
 	return code, nil
 }
 
-func assembleJal(t assembler.ResolvedToken) (uint32, error) {
+func assembleJal(t assembler.ResolvedToken, addr int) (uint32, error) {
 	if len(t.Args) != 2 {
 		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction '%s', expected 2 arguments", t.Value))
 	}
+
+	t.Args[1] = uint64(signExtend64(uint32(t.Args[1])) - uint64(addr))
 
 	code := uint32(0b1101111)
 	code = code | uint32(t.Args[0] << 7)
 	code = code | uint32(t.Args[1] & 0b11111111000000000000)
 	code = code | uint32((t.Args[1] & 0b100000000000) << 9)
-	code = code | uint32((t.Args[1] & 0b11111111110) << 11)
-	code = code | uint32((t.Args[1] & 0b100000000000000000000) << 12)
+	code = code | uint32((t.Args[1] & 0b11111111110) << 20)
+	code = code | uint32((t.Args[1] & 0b100000000000000000000) << 11)
 
 	return code, nil
 }
@@ -731,9 +735,9 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	case "sb", "sh", "sw":
 		bin, err = assembleStore(t)
 	case "beq", "bne", "blt", "bge", "bltu", "bgeu":
-		bin, err = assembleBranch(t)
+		bin, err = assembleBranch(t, addr)
 	case "jal":
-		bin, err = assembleJal(t)
+		bin, err = assembleJal(t, addr)
 	case "jalr":
 		bin, err = assembleJalr(t)
 	case "lui", "auipc":
@@ -747,9 +751,9 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	}
 
 	code[addr] = uint8(bin & 0xff)
-	code[addr+1] = uint8(bin & 0xff00)
-	code[addr+2] = uint8(bin & 0xff0000)
-	code[addr+3] = uint8(bin & 0xff000000)
+	code[addr+1] = uint8((bin & 0xff00) >> 8)
+	code[addr+2] = uint8((bin & 0xff0000) >> 16)
+	code[addr+3] = uint8((bin & 0xff000000) >> 24)
 
 	return nil
 }
@@ -815,7 +819,7 @@ func translateArgs(arg string) (uint64, error) {
 		return 0, errors.New("Empty argument")
 	}
 
-	if 0x30 <= arg[0] && arg[0] <= 0x39 {
+	if (0x30 <= arg[0] && arg[0] <= 0x39) || arg[0] == '-' {
 		n, err := strconv.ParseInt(arg, 0, 64)
 		return uint64(n), err
 	}

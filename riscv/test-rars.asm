@@ -3,6 +3,7 @@
 # EGG.
 #
 
+_start:
 	# Arithmetic instructions.
 	add x3, x5, x7
 	sub x3, x5, x7
@@ -42,24 +43,24 @@
 	sw x3, -3(x5)
 
 	# Branch instructions.
-	beq x3, x5, 3
-	bne x3, x5, 3
-	blt x3, x5, 3
-	bge x3, x5, 3
-	bltu x3, x5, 3
-	bgeu x3, x5, 3
-	beq x3, x5, 3
-	bne x3, x5, -3
-	blt x3, x5, -3
-	bge x3, x5, -3
-	bltu x3, x5, -3
-	bgeu x3, x5, -3
+	beq x3, x5, end
+	bne x3, x5, end
+	blt x3, x5, end
+	bge x3, x5, end
+	bltu x3, x5, end
+	bgeu x3, x5, end
+	beq x3, x5, _start
+	bne x3, x5, _start
+	blt x3, x5, _start
+	bge x3, x5, _start
+	bltu x3, x5, _start
+	bgeu x3, x5, _start
 
 	# Jump instructions.
-	jal x3, 5
-	jal x3, -5
-	jalr x3, x5, 7
-	jalr x3, x5, -7
+	jal x3, end
+	jal x3, _start
+	jalr x3, x5, 3
+	jalr x3, x5, -3
 
 	# UI instructions.
 	lui x3, 5
@@ -70,3 +71,4 @@
 	# Calls
 	ecall
 	ebreak
+end:

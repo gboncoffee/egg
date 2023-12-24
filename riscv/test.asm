@@ -7,7 +7,7 @@
 ;;
 ;; The assembly file with RARS syntax is at test-rars.asm.
 ;;
-
+_start:
 	;; Arithmetic instructions.
 	add 3, 5, 7
 	sub 3, 5, 7
@@ -39,32 +39,32 @@
 	lhu 3, 5, 42
 
 	;; Store instructions.
-	sb 3, 5, 3
-	sh 3, 5, 3
-	sw 3, 5, 3
-	sb 3, 5, -3
-	sh 3, 5, -3
-	sw 3, 5, -3
+	sb 5, 3, 3
+	sh 5, 3, 3
+	sw 5, 3, 3
+	sb 5, 3, -3
+	sh 5, 3, -3
+	sw 5, 3, -3
 
 	;; Branch instructions.
-	beq 3, 5, 3
-	bne 3, 5, 3
-	blt 3, 5, 3
-	bge 3, 5, 3
-	bltu 3, 5, 3
-	bgeu 3, 5, 3
-	beq 3, 5, -3
-	bne 3, 5, -3
-	blt 3, 5, -3
-	bge 3, 5, -3
-	bltu 3, 5, -3
-	bgeu 3, 5, -3
+	beq 3, 5, end
+	bne 3, 5, end
+	blt 3, 5, end
+	bge 3, 5, end
+	bltu 3, 5, end
+	bgeu 3, 5, end
+	beq 3, 5, _start
+	bne 3, 5, _start
+	blt 3, 5, _start
+	bge 3, 5, _start
+	bltu 3, 5, _start
+	bgeu 3, 5, _start
 
 	;; Jump instructions.
-	jal 3, 5
-	jal 3, -5
-	jalr 3, 5, 7
-	jalr 3, 5, -7
+	jal 3, end
+	jal 3, _start
+	jalr 3, 5, 3
+	jalr 3, 5, -3
 
 	;; UI instructions.
 	lui 3, 5
@@ -75,3 +75,4 @@
 	;; Calls
 	ecall
 	ebreak
+end:
