@@ -71,4 +71,14 @@ _start:
 	# Calls
 	ecall
 	ebreak
+
+	# Multiplication extension.
+	mul x3, x5, x7
+	mulh x3, x5, x7
+	mulhsu x3, x5, x7
+	mulhu x3, x5, x7
+	div x3, x5, x7
+	divu x3, x5, x7
+	rem x3, x5, x7
+	remu x3, x5, x7
 end:

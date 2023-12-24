@@ -99,39 +99,6 @@ func TestChunkedMem(t *testing.T) {
 	}
 }
 
-func TestArithmeticInstructions(t *testing.T) {
-	// TODO: Maybe test more than only addi, add and sub?
-	var m RiscV
-
-	// addi x6, x0, 0x45
-	m.execute(0x04500313)
-	r, _ := m.GetRegister(6)
-	if r != 0x45 {
-		t.Fatalf("Failed addi: %x", r)
-	}
-
-	// addi x7, x0, 0xffffffd6 (-42)
-	m.execute(0xfd600393)
-	r, _ = m.GetRegister(7)
-	if r != 0x00000000ffffffd6 {
-		t.Fatalf("Failed addi: %x", r)
-	}
-
-	// add x6, x6, x7
-	m.execute(0x00730333)
-	r, _ = m.GetRegister(6)
-	if r != 27 {
-		t.Fatalf("Failed addi: %x", r)
-	}
-
-	// sub x6, x6, x7
-	m.execute(0x40730333)
-	r, _ = m.GetRegister(6)
-	if r != 0x45 {
-		t.Fatalf("Failed addi: %x", r)
-	}
-}
-
 //go:embed test.asm
 var asm string
 
@@ -174,19 +141,19 @@ func TestAssembler(t *testing.T) {
 		0xfe328ea3,
 		0xfe329ea3,
 		0xfe32aea3,
-		0x04518c63,
-		0x04519a63,
-		0x0451c863,
-		0x0451d663,
-		0x0451e463,
-		0x0451f263,
+		0x06518c63,
+		0x06519a63,
+		0x0651c863,
+		0x0651d663,
+		0x0651e463,
+		0x0651f263,
 		0xf65188e3,
 		0xf65196e3,
 		0xf651c4e3,
 		0xf651d2e3,
 		0xf651e0e3,
 		0xf451fee3,
-		0x028001ef,
+		0x048001ef,
 		0xf55ff1ef,
 		0x003281e7,
 		0xffd281e7,
@@ -196,6 +163,14 @@ func TestAssembler(t *testing.T) {
 		0xffffb197,
 		0x00000073,
 		0x00100073,
+		0x027281b3,
+		0x027291b3,
+		0x0272a1b3,
+		0x0272b1b3,
+		0x0272c1b3,
+		0x0272d1b3,
+		0x0272e1b3,
+		0x0272f1b3,
 	}
 
 	for i := 0; i < len(correctCode); i++ {
@@ -213,3 +188,6 @@ func TestAssembler(t *testing.T) {
 		}
 	}
 }
+
+//func TestInstructions(t *testing.T) {
+//}

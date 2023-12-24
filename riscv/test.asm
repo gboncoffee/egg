@@ -75,4 +75,14 @@ _start:
 	;; Calls
 	ecall
 	ebreak
+
+	;; Multiplication extension.
+	mul 3, 5, 7
+	mulh 3, 5, 7
+	mulsu 3, 5, 7
+	mulu 3, 5, 7
+	div 3, 5, 7
+	divu 3, 5, 7
+	rem 3, 5, 7
+	remu 3, 5, 7
 end:

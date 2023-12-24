@@ -515,6 +515,9 @@ func assembleArithmetic(t assembler.ResolvedToken) (uint32, error) {
 	switch t.Value {
 	case "sub":
 		func7 = 0x20
+	// Avoid running the multiplication part.
+	case "add":
+		break
 	case "sll":
 		func3 = 1
 	case "slt":
@@ -532,6 +535,26 @@ func assembleArithmetic(t assembler.ResolvedToken) (uint32, error) {
 		func3 = 6
 	case "and":
 		func3 = 7
+	// Multiplication extension.
+	default:
+		func7 = 1
+		// 0 is mul.
+		switch t.Value {
+		case "mulh":
+			func3 = 1
+		case "mulsu":
+			func3 = 2
+		case "mulu":
+			func3 = 3
+		case "div":
+			func3 = 4
+		case "divu":
+			func3 = 5
+		case "rem":
+			func3 = 6
+		case "remu":
+			func3 = 7
+		}
 	}
 
 	code = code | (func3 << 12)
@@ -726,7 +749,7 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	var err error
 
 	switch t.Value {
-	case "add", "sub", "xor", "or", "and", "sll", "srl", "sra", "slt", "sltu":
+	case "add", "sub", "xor", "or", "and", "sll", "srl", "sra", "slt", "sltu", "mul", "mulh", "mulsu", "mulu", "div", "divu", "rem", "remu":
 		bin, err = assembleArithmetic(t)
 	case "addi", "xori", "ori", "andi", "slli", "srli", "srai", "slti", "sltiu":
 		bin, err = assembleArithmeticImm(t)
@@ -744,6 +767,8 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 		bin, err = assembleU(t)
 	case "ecall", "ebreak":
 		bin, err = assembleCall(t)
+	default:
+		return errors.New(fmt.Sprintf("Unknown instruction: %v", t.Value))
 	}
 
 	if err != nil {
