@@ -189,5 +189,230 @@ func TestAssembler(t *testing.T) {
 	}
 }
 
-//func TestInstructions(t *testing.T) {
-//}
+//go:embed test-instructions.asm
+var inst string
+
+func (m *RiscV) getByName(n string) uint64 {
+	r, _ := m.GetRegisterNumber(n)
+	v, _ := m.GetRegister(r)
+	return v
+}
+
+func (m *RiscV) assertRegister(t *testing.T, v string, r uint64, s string) {
+	a := m.getByName(v)
+	if a != r {
+		t.Fatalf("Wrong result in '%v': %v", s, a)
+	}
+}
+
+func TestInstructions(t *testing.T) {
+
+	var m RiscV
+	code, _, err := m.Assemble(inst)
+	if err != nil {
+		t.Fatalf("Couldn't assemble: %v", err)
+	}
+
+	err = m.LoadProgram(code)
+	if err != nil {
+		t.Fatalf("Couldn't load program: %v", err)
+	}
+
+	//
+	// Arithmetic immediate.
+	//
+	m.NextInstruction()
+	m.assertRegister(t, "t0", 1, "addi t0, zero, 1")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t0", 4, "xori t0, t0, 5")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t0", 6, "ori t0, t0, 2")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t0", 2, "andi t0, t0, 3")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t0", 8, "slli t0, t0, 2")
+
+	m.NextInstruction()
+	m.NextInstruction()
+	m.assertRegister(t, "t2", 536870914, "srli t2, t1, 2")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t2", 3758096386, "srai t2, t1, 2")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t3", 1, "slti t3, t2, t0")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t3", 0, "sltu t3, t2, t0")
+
+	//
+	// Arithmetic.
+	//
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+
+	m.NextInstruction()
+	m.assertRegister(t, "t4", 3, "add t4, t0, t1")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t4", 1, "sub t4, t2, t1")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t4", 6, "xor t4, t3, t2")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t4", 3, "or t4, t0, t1")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t4", 1, "and t4, t2, t5")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t4", 2, "sll t4, t0, t1")
+
+	m.NextInstruction()
+	m.NextInstruction()
+	m.assertRegister(t, "t4", 536870914, "srl t4, t5, t1")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t4", 3758096386, "sra t4, t5, t1")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t4", 1, "slt t4, t5, t2")
+
+	m.NextInstruction()
+	m.assertRegister(t, "t4", 0, "sltu t4, t5, t2")
+
+	//
+	// Loads and stores.
+	//
+	m.NextInstruction()
+	m.NextInstruction()
+
+	m.NextInstruction()
+	m.NextInstruction()
+	m.assertRegister(t, "t2", 0xaaeeffff, "lw t2, t1, 0")
+
+	m.NextInstruction()
+	m.NextInstruction()
+	m.assertRegister(t, "t2", 0xffffffff, "lb t2, t1, 0")
+	m.NextInstruction()
+	m.assertRegister(t, "t2", 0x000000ff, "lbu t2, t1, 0")
+
+	m.NextInstruction()
+	m.NextInstruction()
+	m.assertRegister(t, "t2", 0xffffffff, "lh t2, t1, 0")
+	m.NextInstruction()
+	m.assertRegister(t, "t2", 0x0000ffff, "lhu t2, t1, 0")
+
+	//
+	// Branches.
+	//
+
+	m.NextInstruction()
+	m.NextInstruction()
+	bges := m.pc
+	m.NextInstruction()
+	m.NextInstruction()
+	if m.pc != bges {
+		t.Fatalf("bges doesn't branch correctly")
+	}
+	m.NextInstruction()
+	m.NextInstruction()
+	if m.pc != bges + 8 {
+		t.Fatalf("bges doesn't pass correctly")
+	}
+
+	m.NextInstruction()
+	m.NextInstruction()
+	beqs := m.pc
+	m.NextInstruction()
+	m.NextInstruction()
+	if m.pc != beqs {
+		t.Fatalf("beqs doesn't branch correctly")
+	}
+	m.NextInstruction()
+	m.NextInstruction()
+	if m.pc != beqs + 8 {
+		t.Fatalf("beqs doesn't pass correctly")
+	}
+
+	m.NextInstruction()
+	m.NextInstruction()
+	blts := m.pc
+	m.NextInstruction()
+	m.NextInstruction()
+	if m.pc != blts {
+		t.Fatalf("blts doesn't branch correctly")
+	}
+	m.NextInstruction()
+	m.NextInstruction()
+	if m.pc != blts + 8 {
+		t.Fatalf("blts doesn't pass correctly")
+	}
+
+	m.NextInstruction()
+	m.NextInstruction()
+	bnes := m.pc
+	m.NextInstruction()
+	m.NextInstruction()
+	if m.pc != bnes {
+		t.Fatalf("bnes doesn't branch correctly")
+	}
+	m.NextInstruction()
+	m.NextInstruction()
+	if m.pc != bnes + 8 {
+		t.Fatalf("bnes doesn't pass correctly")
+	}
+
+	m.NextInstruction()
+	m.NextInstruction()
+	bltu := m.pc
+	m.NextInstruction()
+	if m.pc == bltu + 4 {
+		t.Fatalf("bltu doesn't branch correctly")
+	}
+
+	bgeu := m.pc
+	m.NextInstruction()
+	if m.pc == bgeu + 4 {
+		t.Fatalf("bgeu doesn't branch correctly")
+	}
+
+	//
+	// Jumps.
+	//
+	ret := m.pc
+	m.NextInstruction()
+	if m.pc == ret + 4 {
+		t.Fatalf("jal does not jump correctly")
+	}
+	m.NextInstruction()
+	if m.pc != ret + 4 {
+		t.Fatalf("jalr does not return correctly")
+	}
+
+	//
+	// Calls.
+	//
+	m.NextInstruction()
+	call, _ := m.NextInstruction()
+	if call == nil {
+		t.Fatalf("call is nil")
+	}
+	if call.Number != 2 {
+		t.Fatalf("call number is not 2")
+	}
+	call, _ = m.NextInstruction()
+	if call == nil {
+		t.Fatalf("break call is nil")
+	}
+	if call.Number != 1 {
+		t.Fatalf("break is not 1")
+	}
+}

@@ -19,7 +19,7 @@ type Machine interface {
 	GetRegister(uint64) (uint64, error)
 	// Address than content.
 	SetRegister(uint64, uint64) error
-	//GetRegisterNumber(string) uint64
+	GetRegisterNumber(string) (uint64, error)
 	Assemble(string) ([]uint8, []assembler.DebuggerToken, error)
 }
 

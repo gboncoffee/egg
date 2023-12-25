@@ -434,7 +434,7 @@ func (m *RiscV) NextInstruction() (*machine.Call, error) {
 		return nil, errors.New(fmt.Sprintf("Could not load 4 bytes from address at PC: %x", m.pc))
 	}
 
-	i := uint32(iarr[0]) | uint32(iarr[1]<<8) | uint32(iarr[2]<<16) | uint32(iarr[3]<<24)
+	i := uint32(iarr[0]) | (uint32(iarr[1]) << 8) | (uint32(iarr[2]) << 16) | (uint32(iarr[3]) << 24)
 
 	return m.execute(i)
 }
@@ -865,6 +865,15 @@ func translateArgs(arg string) (uint64, error) {
 	}
 
 	return parseRegisterArg(arg)
+}
+
+func (m *RiscV) GetRegisterNumber(r string) (uint64, error) {
+	reg, err := translateArgs(r)
+	if err != nil || reg >= 32 {
+		return 0, errors.New(fmt.Sprintf("No such register: %v", r))
+	}
+
+	return reg, nil
 }
 
 func (m *RiscV) Assemble(asm string) ([]uint8, []assembler.DebuggerToken, error) {
