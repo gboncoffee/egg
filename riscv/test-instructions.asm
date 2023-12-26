@@ -26,7 +26,9 @@ _start:
 	slli t0, t0, 2
 
 	;; t1 = 2147483658
-	addi t1, zero, 2147483658
+	addi t1, zero, 1
+	slli t1, t1, 31
+	addi t1, t1, 10
 
 	;; t2 = t1 >> 2 :: t2 == 536870914
 	srli t2, t1, 2
@@ -62,14 +64,16 @@ _start:
 	;; t4 = t0 | t1 :: t4 == 3
 	or t4, t0, t1
 
-	;; t4 = t2 & t5 :: t4 == 1
-	and t4, t2, t5
+	;; t4 = t2 & t3 :: t4 == 1
+	and t4, t2, t3
 
 	;; t4 = t0 << t1 :: t4 == 2
 	sll t4, t0, t1
 
 	;; Negative constant strikes again.
-	addi t5, zero, 2147483658
+	addi t5, zero, 1
+	slli t5, t5, 31
+	addi t5, t5, 10
 
 	;; t4 = t5 >> t1 :: t4 == 536870914
 	srl t4, t5, t1
@@ -85,25 +89,37 @@ _start:
 
 	;;
 	;; Loads and stores with the word 0xaaeeffff at address 0x1000.
+	;; This is terrible because we didn't tested lui already.
 	;;
-	addi t0, zero, 0x1000
-	addi t1, zero, 0xaaeeffff
+	addi t0, zero, 1
+	slli t0, t0, 12
+
+	addi t2, zero, 0xaa
+	slli t2, t2, 24
+	or t1, zero, t2
+	addi t2, zero, 0xee
+	slli t2, t2, 16
+	or t1, t1, t2
+	addi t2, zero, 0xff
+	slli t2, t2, 8
+	or t1, t1, t2
+	ori t1, t1, 0xff
 
 	sw t0, t1, 0
 	;; t2 == 0xaaeeffff
-	lw t2, t1, 0
+	lw t2, t0, 0
 
 	sb t0, t1, 0
 	;; t2 == 0xffffffff
-	lb t2, t1, 0
+	lb t2, t0, 0
 	;; t2 == 0x000000ff
-	lbu t2, t1, 0
+	lbu t2, t0, 0
 
 	sh t0, t1, 0
 	;; t2 == 0xffffffff
-	lh t2, t1, 0
+	lh t2, t0, 0
 	;; t2 == 0x0000ffff
-	lhu t2, t1, 0
+	lhu t2, t0, 0
 
 	;;
 	;; Branches.

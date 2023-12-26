@@ -223,7 +223,7 @@ func (m *RiscV) execImmArithmetic(rd uint8, rs1 uint8, imm uint32, func3 uint8) 
 	case 0x0:
 		r = rs1v + immv
 	case 0x1:
-		r = rs1v << (immv & 0b1111)
+		r = rs1v << (immv & 0b11111)
 	case 0x2:
 		if rs1v < int32(imm) {
 			r = 1
@@ -240,9 +240,9 @@ func (m *RiscV) execImmArithmetic(rd uint8, rs1 uint8, imm uint32, func3 uint8) 
 		r = rs1v ^ immv
 	case 0x5:
 		if (immv & 0b111111100000) == (0x20 << 5) {
-			r = rs1v >> immv
+			r = rs1v >> (immv & 0b11111)
 		} else {
-			r = int32(uint32(rs1v) >> uint32(immv))
+			r = int32(uint32(rs1v) >> uint32(immv & 0b11111))
 		}
 	case 0x6:
 		r = rs1v | immv
@@ -264,15 +264,13 @@ func (m *RiscV) execLoad(rd uint8, rs1 uint8, imm uint32, func3 uint8) {
 	switch func3 {
 	case 0x0:
 		mem, _ := m.GetMemory(addr)
-		rdv, _ := m.GetRegister(uint64(rd))
-		v = (uint32(rdv) & 0xffffff00) | uint32(mem)
+		v = signExtend(uint32(mem), 8)
 	case 0x1:
 		mem, _ := m.GetMemoryChunk(addr, 2)
-		rdv, _ := m.GetRegister(uint64(rd))
 		if len(mem) != 2 {
 			return
 		}
-		v = (uint32(rdv) & 0xffff0000) | uint32(mem[0]) | (uint32(mem[1]) << 8)
+		v = signExtend(uint32(uint32(mem[0]) | (uint32(mem[1]) << 8)), 16)
 	case 0x2:
 		mem, _ := m.GetMemoryChunk(addr, 4)
 		if len(mem) != 4 {

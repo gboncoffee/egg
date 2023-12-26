@@ -238,6 +238,8 @@ func TestInstructions(t *testing.T) {
 
 	m.NextInstruction()
 	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
 	m.assertRegister(t, "t2", 536870914, "srli t2, t1, 2")
 
 	m.NextInstruction()
@@ -270,11 +272,13 @@ func TestInstructions(t *testing.T) {
 	m.assertRegister(t, "t4", 3, "or t4, t0, t1")
 
 	m.NextInstruction()
-	m.assertRegister(t, "t4", 1, "and t4, t2, t5")
+	m.assertRegister(t, "t4", 1, "and t4, t2, t3")
 
 	m.NextInstruction()
-	m.assertRegister(t, "t4", 2, "sll t4, t0, t1")
+	m.assertRegister(t, "t4", 4, "sll t4, t0, t1")
 
+	m.NextInstruction()
+	m.NextInstruction()
 	m.NextInstruction()
 	m.NextInstruction()
 	m.assertRegister(t, "t4", 536870914, "srl t4, t5, t1")
@@ -293,22 +297,33 @@ func TestInstructions(t *testing.T) {
 	//
 	m.NextInstruction()
 	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.assertRegister(t, "t1", 0xaaeeffff, "test value moving")
 
 	m.NextInstruction()
 	m.NextInstruction()
-	m.assertRegister(t, "t2", 0xaaeeffff, "lw t2, t1, 0")
+	m.assertRegister(t, "t2", 0xaaeeffff, "lw t2, t0, 0")
 
 	m.NextInstruction()
 	m.NextInstruction()
-	m.assertRegister(t, "t2", 0xffffffff, "lb t2, t1, 0")
+	m.assertRegister(t, "t2", 0xffffffff, "lb t2, t0, 0")
 	m.NextInstruction()
-	m.assertRegister(t, "t2", 0x000000ff, "lbu t2, t1, 0")
+	m.assertRegister(t, "t2", 0x000000ff, "lbu t2, t0, 0")
 
 	m.NextInstruction()
 	m.NextInstruction()
-	m.assertRegister(t, "t2", 0xffffffff, "lh t2, t1, 0")
+	m.assertRegister(t, "t2", 0xffffffff, "lh t2, t0, 0")
 	m.NextInstruction()
-	m.assertRegister(t, "t2", 0x0000ffff, "lhu t2, t1, 0")
+	m.assertRegister(t, "t2", 0x0000ffff, "lhu t2, t0, 0")
 
 	//
 	// Branches.
