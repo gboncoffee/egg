@@ -205,6 +205,22 @@ func (m *RiscV) assertRegister(t *testing.T, v string, r uint64, s string) {
 	}
 }
 
+func (m *RiscV) ensureBranch(t *testing.T, i string) {
+	pc := m.pc
+	m.NextInstruction()
+	if pc == m.pc - 4 {
+		t.Fatalf("%s didn't branch correctly: %d", i, m.pc)
+	}
+}
+
+func (m *RiscV) ensureDontBranch(t *testing.T, i string) {
+	pc := m.pc
+	m.NextInstruction()
+	if pc != m.pc - 4 {
+		t.Fatalf("%s didn't pass correctly: %x", i, m.pc)
+	}
+}
+
 func TestInstructions(t *testing.T) {
 
 	var m RiscV
@@ -326,80 +342,6 @@ func TestInstructions(t *testing.T) {
 	m.assertRegister(t, "t2", 0x0000ffff, "lhu t2, t0, 0")
 
 	//
-	// Branches.
-	//
-
-	m.NextInstruction()
-	m.NextInstruction()
-	bges := m.pc
-	m.NextInstruction()
-	m.NextInstruction()
-	if m.pc != bges {
-		t.Fatalf("bges doesn't branch correctly")
-	}
-	m.NextInstruction()
-	m.NextInstruction()
-	if m.pc != bges + 8 {
-		t.Fatalf("bges doesn't pass correctly")
-	}
-
-	m.NextInstruction()
-	m.NextInstruction()
-	beqs := m.pc
-	m.NextInstruction()
-	m.NextInstruction()
-	if m.pc != beqs {
-		t.Fatalf("beqs doesn't branch correctly")
-	}
-	m.NextInstruction()
-	m.NextInstruction()
-	if m.pc != beqs + 8 {
-		t.Fatalf("beqs doesn't pass correctly")
-	}
-
-	m.NextInstruction()
-	m.NextInstruction()
-	blts := m.pc
-	m.NextInstruction()
-	m.NextInstruction()
-	if m.pc != blts {
-		t.Fatalf("blts doesn't branch correctly")
-	}
-	m.NextInstruction()
-	m.NextInstruction()
-	if m.pc != blts + 8 {
-		t.Fatalf("blts doesn't pass correctly")
-	}
-
-	m.NextInstruction()
-	m.NextInstruction()
-	bnes := m.pc
-	m.NextInstruction()
-	m.NextInstruction()
-	if m.pc != bnes {
-		t.Fatalf("bnes doesn't branch correctly")
-	}
-	m.NextInstruction()
-	m.NextInstruction()
-	if m.pc != bnes + 8 {
-		t.Fatalf("bnes doesn't pass correctly")
-	}
-
-	m.NextInstruction()
-	m.NextInstruction()
-	bltu := m.pc
-	m.NextInstruction()
-	if m.pc == bltu + 4 {
-		t.Fatalf("bltu doesn't branch correctly")
-	}
-
-	bgeu := m.pc
-	m.NextInstruction()
-	if m.pc == bgeu + 4 {
-		t.Fatalf("bgeu doesn't branch correctly")
-	}
-
-	//
 	// Jumps.
 	//
 	ret := m.pc
@@ -430,4 +372,41 @@ func TestInstructions(t *testing.T) {
 	if call.Number != 1 {
 		t.Fatalf("break is not 1")
 	}
+
+	//
+	// Branches.
+	//
+	m.NextInstruction()
+	m.NextInstruction()
+
+	m.ensureDontBranch(t, "beq")
+	m.ensureBranch(t, "beq")
+
+	m.ensureDontBranch(t, "bne")
+	m.ensureBranch(t, "bne")
+
+	m.ensureDontBranch(t, "blt")
+	m.ensureDontBranch(t, "blt")
+	m.ensureBranch(t, "blt")
+
+	m.ensureDontBranch(t, "bge")
+	m.ensureBranch(t, "bge")
+	m.ensureBranch(t, "bge")
+
+	m.ensureDontBranch(t, "bltu")
+	m.ensureDontBranch(t, "bltu")
+	m.ensureBranch(t, "bltu")
+
+	m.ensureDontBranch(t, "bgeu")
+	m.ensureBranch(t, "bgeu")
+	m.ensureBranch(t, "bgeu")
+
+	//
+	// auipc/lui
+	//
+	m.NextInstruction()
+	m.assertRegister(t, "t0", 0xaaaaa000, "lui t0, 0xaaaaa")
+	pc := m.pc
+	m.NextInstruction()
+	m.assertRegister(t, "t0", uint64(0xaaaaa000 + pc), "auipc t0, 0xaaaaa")
 }

@@ -242,7 +242,7 @@ func (m *RiscV) execImmArithmetic(rd uint8, rs1 uint8, imm uint32, func3 uint8) 
 		if (immv & 0b111111100000) == (0x20 << 5) {
 			r = rs1v >> (immv & 0b11111)
 		} else {
-			r = int32(uint32(rs1v) >> uint32(immv & 0b11111))
+			r = int32(uint32(rs1v) >> uint32(immv&0b11111))
 		}
 	case 0x6:
 		r = rs1v | immv
@@ -270,7 +270,7 @@ func (m *RiscV) execLoad(rd uint8, rs1 uint8, imm uint32, func3 uint8) {
 		if len(mem) != 2 {
 			return
 		}
-		v = signExtend(uint32(uint32(mem[0]) | (uint32(mem[1]) << 8)), 16)
+		v = signExtend(uint32(uint32(mem[0])|(uint32(mem[1])<<8)), 16)
 	case 0x2:
 		mem, _ := m.GetMemoryChunk(addr, 4)
 		if len(mem) != 4 {
@@ -366,11 +366,13 @@ func (m *RiscV) execJalr(rd uint8, rs1 uint8, imm uint32) {
 }
 
 func (m *RiscV) execLui(rd uint8, imm uint32) {
-	m.SetRegister(uint64(rd), uint64(imm)<<12)
+	m.SetRegister(uint64(rd), uint64(imm))
+	m.pc += 4
 }
 
 func (m *RiscV) execAuipc(rd uint8, imm uint32) {
-	m.SetRegister(uint64(rd), uint64(m.pc)+(uint64(imm)<<12))
+	m.SetRegister(uint64(rd), uint64(m.pc)+uint64(imm))
+	m.pc += 4
 }
 
 func (m *RiscV) execute(i uint32) (*machine.Call, error) {
@@ -408,10 +410,11 @@ func (m *RiscV) execute(i uint32) (*machine.Call, error) {
 		num, _ := m.GetRegister(17)
 		a1, _ := m.GetRegister(10)
 		a2, _ := m.GetRegister(11)
-		if imm == 1 {
+		if imm != 0 {
 			num = machine.SYS_BREAK
 		}
 		call := machine.Call{num, a1, a2}
+		m.pc += 4
 
 		return &call, nil
 	default:
@@ -504,9 +507,9 @@ func assembleArithmetic(t assembler.ResolvedToken) (uint32, error) {
 	}
 
 	code := uint32(0b0110011)
-	code = code | uint32(t.Args[0] << 7)
-	code = code | uint32(t.Args[1] << 15)
-	code = code | uint32(t.Args[2] << 20)
+	code = code | uint32(t.Args[0]<<7)
+	code = code | uint32(t.Args[1]<<15)
+	code = code | uint32(t.Args[2]<<20)
 
 	func3 := uint32(0) // add and sub
 	var func7 uint32
@@ -567,9 +570,9 @@ func assembleArithmeticImm(t assembler.ResolvedToken) (uint32, error) {
 	}
 
 	code := uint32(0b0010011)
-	code = code | uint32(t.Args[0] << 7)
-	code = code | uint32(t.Args[1] << 15)
-	code = code | uint32(t.Args[2] << 20)
+	code = code | uint32(t.Args[0]<<7)
+	code = code | uint32(t.Args[1]<<15)
+	code = code | uint32(t.Args[2]<<20)
 
 	func3 := uint32(0) // addi
 	switch t.Value {
@@ -582,7 +585,7 @@ func assembleArithmeticImm(t assembler.ResolvedToken) (uint32, error) {
 	case "slli":
 		func3 = 1
 	case "srai":
-		code = code | uint32(0x20 << 25 )
+		code = code | uint32(0x20<<25)
 		fallthrough
 	case "srli":
 		func3 = 5
@@ -603,9 +606,9 @@ func assembleLoad(t assembler.ResolvedToken) (uint32, error) {
 	}
 
 	code := uint32(0b0000011)
-	code = code | uint32(t.Args[0] << 7)
-	code = code | uint32(t.Args[1] << 15)
-	code = code | uint32(t.Args[2] << 20)
+	code = code | uint32(t.Args[0]<<7)
+	code = code | uint32(t.Args[1]<<15)
+	code = code | uint32(t.Args[2]<<20)
 
 	func3 := uint32(0) // lb
 	switch t.Value {
@@ -630,9 +633,9 @@ func assembleStore(t assembler.ResolvedToken) (uint32, error) {
 	}
 
 	code := uint32(0b0100011)
-	code = code | uint32(t.Args[0] << 15)
-	code = code | uint32(t.Args[1] << 20)
-	code = code | uint32((t.Args[2] & 0b11111) << 7)
+	code = code | uint32(t.Args[0]<<15)
+	code = code | uint32(t.Args[1]<<20)
+	code = code | uint32((t.Args[2]&0b11111)<<7)
 	code = code | uint32((t.Args[2] & 0b111111100000 << 20))
 
 	func3 := uint32(0) // sb
@@ -656,12 +659,12 @@ func assembleBranch(t assembler.ResolvedToken, addr int) (uint32, error) {
 	t.Args[2] = uint64(signExtend64(uint32(t.Args[2])) - uint64(addr))
 
 	code := uint32(0b1100011)
-	code = code | uint32(t.Args[0] << 15)
-	code = code | uint32(t.Args[1] << 20)
-	code = code | uint32((t.Args[2] & 0b100000000000) >> 4)
-	code = code | uint32((t.Args[2] & 0b11110) << 7)
-	code = code | uint32((t.Args[2] & 0b1000000000000) << 19)
-	code = code | uint32((t.Args[2] & 0b11111100000) << 20)
+	code = code | uint32(t.Args[0]<<15)
+	code = code | uint32(t.Args[1]<<20)
+	code = code | uint32((t.Args[2]&0b100000000000)>>4)
+	code = code | uint32((t.Args[2]&0b11110)<<7)
+	code = code | uint32((t.Args[2]&0b1000000000000)<<19)
+	code = code | uint32((t.Args[2]&0b11111100000)<<20)
 
 	func3 := uint32(0) // beq
 	switch t.Value {
@@ -690,11 +693,11 @@ func assembleJal(t assembler.ResolvedToken, addr int) (uint32, error) {
 	t.Args[1] = uint64(signExtend64(uint32(t.Args[1])) - uint64(addr))
 
 	code := uint32(0b1101111)
-	code = code | uint32(t.Args[0] << 7)
-	code = code | uint32(t.Args[1] & 0b11111111000000000000)
-	code = code | uint32((t.Args[1] & 0b100000000000) << 9)
-	code = code | uint32((t.Args[1] & 0b11111111110) << 20)
-	code = code | uint32((t.Args[1] & 0b100000000000000000000) << 11)
+	code = code | uint32(t.Args[0]<<7)
+	code = code | uint32(t.Args[1]&0b11111111000000000000)
+	code = code | uint32((t.Args[1]&0b100000000000)<<9)
+	code = code | uint32((t.Args[1]&0b11111111110)<<20)
+	code = code | uint32((t.Args[1]&0b100000000000000000000)<<11)
 
 	return code, nil
 }
@@ -705,9 +708,9 @@ func assembleJalr(t assembler.ResolvedToken) (uint32, error) {
 	}
 
 	code := uint32(0b1100111)
-	code = code | uint32(t.Args[0] << 7)
-	code = code | uint32(t.Args[1] << 15)
-	code = code | uint32(t.Args[2] << 20)
+	code = code | uint32(t.Args[0]<<7)
+	code = code | uint32(t.Args[1]<<15)
+	code = code | uint32(t.Args[2]<<20)
 
 	return code, nil
 }
@@ -723,8 +726,8 @@ func assembleU(t assembler.ResolvedToken) (uint32, error) {
 	} else {
 		code = 0b0010111
 	}
-	code = code | uint32(t.Args[0] << 7)
-	code = code | uint32(t.Args[1] << 12)
+	code = code | uint32(t.Args[0]<<7)
+	code = code | uint32(t.Args[1]<<12)
 
 	return code, nil
 }

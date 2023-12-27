@@ -122,53 +122,67 @@ _start:
 	lhu t2, t0, 0
 
 	;;
-	;; Branches.
-	;;
-
-	addi t0, zero, 1
-	addi t1, zero, 2
-bges:
-	sub t1, t1, t0
-	bge t1, t0, bges
-
-	addi t0, zero, 1
-	addi t1, zero, 2
-beqs:
-	sub t1, t1, t0
-	beq t1, t0, beqs
-
-	addi t0, zero, 1
-	addi t1, zero, 3
-blts:
-	sub t1, t1, t0
-	blt t0, t1, blts
-
-	addi t0, zero, 1
-	addi t1, zero, 3
-bnes:
-	sub t1, t1, t0
-	blt t0, t1, bnes
-
-	;; Unsigned
-	addi t0, zero, 0xff000000
-	addi t1, zero, 1
-	bltu t1, t0, bltue
-	addi zero, zero, 0	;; Shouldn't perform this.
-bltue:
-	bgeu t0, t1, bgeue
-	addi zero, zero, 0	;; Shouldn't perform this.
-bgeue:
-
-	;;
 	;; Jump.
 	;;
 	jal ra, func
 	;; It should jump to func at the bottom them return.
 
+	;;
 	;; Calls.
+	;;
 	addi a7, zero, 2
 	ecall
 	ebreak
+
+	;;
+	;; Branches.
+	;;
+	addi t0, zero, -1
+	addi t1, zero, 2
+
+	beq t1, t0, func	;; Should not branch.
+	beq zero, zero, beq1	;; Should branch.
+	addi zero, zero, zero
+beq1:
+
+	bne zero, zero, func	;; Should not branch.
+	bne t1, t0, bne1	;; Should branch.
+	addi zero, zero, zero
+bne1:
+
+	blt t1, t0, func	;; Should not branch.
+	blt zero, zero, func	;; Should not branch.
+	blt t0, t1, blt1	;; Should branch.
+	addi zero, zero, zero
+blt1:
+
+	bge t0, t1, func	;; Should not branch.
+	bge zero, zero, bge1	;; Should branch.
+	addi zero, zero, zero
+bge1:
+	bge t1, t0, bge2	;; Should branch.
+	addi zero, zero, zero
+bge2:
+
+	bltu t0, t1, func	;; Should not branch.
+	bltu zero, zero, func	;; Should not branch.
+	bltu t1, t0, bltu1	;; Should branch.
+	addi zero, zero, zero
+bltu1:
+
+	bgeu t1, t0, func	;; Should not branch.
+	bgeu zero, zero, bgeu1	;; Should branch.
+	addi zero, zero, zero
+bgeu1:
+	bgeu t0, t1, bgeu2	;; Should branch.
+	addi zero, zero, zero
+bgeu2:
+
+	;;
+	;; auipc/lui
+	;;
+	lui t0, 0xaaaaa
+	auipc t0, 0xaaaaa
 
 func:
 	jalr zero, ra, 0
