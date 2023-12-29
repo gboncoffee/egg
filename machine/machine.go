@@ -21,6 +21,8 @@ type Machine interface {
 	SetRegister(uint64, uint64) error
 	GetRegisterNumber(string) (uint64, error)
 	Assemble(string) ([]uint8, []assembler.DebuggerToken, error)
+	GetCurrentInstructionAddress() uint64
+	ArchitetureName() string
 }
 
 // Syscalls numbers. ISAs with specific calls for BREAK should send a BREAK on them.

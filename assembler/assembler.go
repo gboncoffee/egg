@@ -41,6 +41,7 @@ func CreateDebugTokensFixedSize(tokens []Token, size uint64) []DebuggerToken {
 	var dt []DebuggerToken
 	addr := uint64(0)
 	var last_label string
+	var last_instruction *DebuggerToken
 
 	for _, t := range tokens {
 		switch t.Type {
@@ -56,6 +57,9 @@ func CreateDebugTokensFixedSize(tokens []Token, size uint64) []DebuggerToken {
 			})
 			addr += size
 			last_label = ""
+			last_instruction = &dt[len(dt)-1]
+		case TOKEN_ARG:
+			last_instruction.Args = last_instruction.Args + " " + t.Value
 		case TOKEN_LABEL:
 			last_label = t.Value
 		case TOKEN_LITERAL:

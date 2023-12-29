@@ -814,6 +814,21 @@ func assemble(t []assembler.ResolvedToken) ([]uint8, error) {
 }
 
 func parseRegisterArg(arg string) (uint64, error) {
+	switch arg {
+	case "zero":
+		return 0, nil
+	case "ra":
+		return 1, nil
+	case "sp":
+		return 2, nil
+	case "gp":
+		return 3, nil
+	case "tp":
+		return 4, nil
+	case "fp":
+		return 8, nil
+	}
+
 	n, err := strconv.Atoi(arg[1:])
 	if err != nil {
 		return 0, errors.New(fmt.Sprintf("No such register: %v", arg))
@@ -835,6 +850,8 @@ func parseRegisterArg(arg string) (uint64, error) {
 		return uint64(n + 16), nil
 	case 'a':
 		return uint64(n + 10), nil
+	case 'x':
+		return uint64(n), nil
 	}
 
 	return 0, errors.New(fmt.Sprintf("No such register: %v", arg))
@@ -850,26 +867,14 @@ func translateArgs(arg string) (uint64, error) {
 		return uint64(n), err
 	}
 
-	switch arg {
-	case "zero":
-		return 0, nil
-	case "ra":
-		return 1, nil
-	case "sp":
-		return 2, nil
-	case "gp":
-		return 3, nil
-	case "tp":
-		return 4, nil
-	case "fp":
-		return 8, nil
-	}
-
 	return parseRegisterArg(arg)
 }
 
 func (m *RiscV) GetRegisterNumber(r string) (uint64, error) {
-	reg, err := translateArgs(r)
+	if len(r) < 2 {
+		return 0, errors.New(fmt.Sprintf("No such register: %v", r))
+	}
+	reg, err := parseRegisterArg(r)
 	if err != nil || reg >= 32 {
 		return 0, errors.New(fmt.Sprintf("No such register: %v", r))
 	}
@@ -891,4 +896,12 @@ func (m *RiscV) Assemble(asm string) ([]uint8, []assembler.DebuggerToken, error)
 	}
 
 	return code, symbs, nil
+}
+
+func (m *RiscV) GetCurrentInstructionAddress() uint64 {
+	return uint64(m.pc)
+}
+
+func (m *RiscV) ArchitetureName() string {
+	return "RISC-V IM (32 bits)"
 }

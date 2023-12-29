@@ -117,19 +117,19 @@ func main() {
 
 	code, sym, err := m.Assemble(asm)
 	if err != nil {
-		log.Println("Error assembling file %v: %v", file, err)
+		log.Printf("Error assembling file %v: %v\n", file, err)
 		os.Exit(1)
 	}
 
 	err = m.LoadProgram(code)
 	if err != nil {
-		log.Println("Error loading assembled program: %v", err)
+		log.Printf("Error loading assembled program: %v\n", err)
 		os.Exit(1)
 	}
 
 	if debug {
 		// Hello fellow Acme user. Plumb this: debugger.go:/debugMachine
-		debugMachine(m, sym)
+		debugMachine(m, sym, code)
 	} else {
 		runMachine(m)
 	}
