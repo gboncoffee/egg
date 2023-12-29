@@ -1,13 +1,8 @@
 [Read this document in English](README.md)
 
-# EGG, um emulador de processadores genérico (WIP)
-
-![Um único ovo simples, minimalista, em estilo de desenho, com fundo branco puro.](egg.jpg)
+# EGG, um emulador de processadores genérico
 
 EGG (Emulador Genérico do Gabriel) é um emulador modular de arquiteturas de
 processador, criado para fins educacionais.
 
-## TODO:
-
-Implementar o debugger e documentar tudo. Então eu pensarei sobre uma release.
-
+O emulador está num estado satisfatório no momento. Eu só preciso documentar tudo, configurar o GitHub Actions e toda a burocracia (issues, pr, etc) para fazer uma release.
