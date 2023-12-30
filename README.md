@@ -1,4 +1,5 @@
 [![Go](https://github.com/gboncoffee/egg/actions/workflows/go.yml/badge.svg?branch=master)](https://github.com/gboncoffee/egg/actions/workflows/go.yml)
+[![CodeQL](https://github.com/gboncoffee/egg/actions/workflows/github-code-scanning/codeql/badge.svg?branch=master)](https://github.com/gboncoffee/egg/actions/workflows/github-code-scanning/codeql)
 
 [Ler esse documento em português](README-pt.md)
 
