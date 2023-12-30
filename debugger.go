@@ -229,7 +229,7 @@ func ioCall(m machine.Machine, call *machine.Call, in *bufio.Reader) {
 	if call.Number == machine.SYS_READ {
 		addr := call.Arg1
 		size := call.Arg2
-		fmt.Println("READ call for address 0x%x with %d bytes:", addr, size)
+		fmt.Printf("READ call for address 0x%x with %d bytes:\n", addr, size)
 		buf := make([]byte, size)
 		_, err := in.Read(buf)
 		if err != nil {
@@ -332,7 +332,7 @@ func debuggerBreakpoint(m machine.Machine, sym []assembler.DebuggerToken, breakp
 		var err error
 		addr, err = strconv.ParseUint(args[0], 0, 64)
 		if err != nil {
-			fmt.Println("%v is not a number.\n", args[0])
+			fmt.Printf("%v is not a number.\n", args[0])
 			return
 		}
 	}
