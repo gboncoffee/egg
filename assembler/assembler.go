@@ -21,7 +21,8 @@ type Token struct {
 	Value string
 }
 
-// Can be instruction or literal. Only instructions have Args.
+// Token with resolved labels and arguments (only instructions have arguments).
+// Can only be instruction or literal.
 type ResolvedToken struct {
 	Type uint8
 	Size uint64
@@ -29,7 +30,8 @@ type ResolvedToken struct {
 	Args []uint64
 }
 
-// Only instructions.
+// Token only for instructions. An array of DebuggerToken is passed to the
+// debugger.
 type DebuggerToken struct {
 	Instruction string
 	Args string
@@ -37,6 +39,7 @@ type DebuggerToken struct {
 	Label string
 }
 
+// Creates an array of DebuggerToken when instructions have always a fixed size.
 func CreateDebugTokensFixedSize(tokens []Token, size uint64) []DebuggerToken {
 	var dt []DebuggerToken
 	addr := uint64(0)
@@ -75,7 +78,11 @@ func CreateDebugTokensFixedSize(tokens []Token, size uint64) []DebuggerToken {
 type ArgTranslateFunction func(string) (uint64, error)
 
 // Resolves labels and arguments for fixed-size instructions with size bytes.
-// ArgTranslateFunction translates arguments into numbers.
+// ArgTranslateFunction translates arguments into numbers. The arguments are
+// translating first resolving the labels, and them, if the argument is not a
+// label, calling ArgTranslateFunction with it. Labels are always changed by
+// their address, so the architeture-side should change it to an offset when
+// needed.
 func ResolveTokensFixedSize(tokens []Token, size uint64, arg ArgTranslateFunction) ([]ResolvedToken, error) {
 	labels := make(map[string]uint64)
 	addr := uint64(0)
