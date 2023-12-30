@@ -1,3 +1,5 @@
+[![Go](https://github.com/gboncoffee/egg/actions/workflows/go.yml/badge.svg?branch=master)](https://github.com/gboncoffee/egg/actions/workflows/go.yml)
+
 [Ler esse documento em português](README-pt.md)
 
 # EGG, a generic processor emulator
