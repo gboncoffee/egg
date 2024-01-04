@@ -409,4 +409,27 @@ func TestInstructions(t *testing.T) {
 	pc := m.pc
 	m.NextInstruction()
 	m.assertRegister(t, "t0", uint64(0xaaaaa000 + pc), "auipc t0, 0xaaaaa")
+
+	//
+	// Multiplication extension.
+	//
+	m.NextInstruction()
+	m.NextInstruction()
+
+	m.NextInstruction()
+	m.assertRegister(t, "t2", uint64(0x1fffd000), "mul t2, t0, t1")
+	m.NextInstruction()
+	m.assertRegister(t, "t2", uint64(0x1), "mulh t2, t0, t1")
+	m.NextInstruction()
+	m.assertRegister(t, "t2", uint64(0x1ffffaaa), "div t2, t0, t1")
+
+	m.NextInstruction()
+
+	m.NextInstruction()
+	m.assertRegister(t, "t2", uint64(0xE0003000), "mul t2, t0, t1 (neg)")
+	m.NextInstruction()
+	m.assertRegister(t, "t2", uint64(0xFFFFFFFE), "mulh t2, t0, t1 (neg)")
+	m.NextInstruction()
+	// -536869545 but without the 4 top bytes.
+	m.assertRegister(t, "t2", uint64(3758097750), "div t2, t0, t1 (neg)")
 }
