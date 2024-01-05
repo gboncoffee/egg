@@ -184,5 +184,40 @@ bgeu2:
 	lui t0, 0xaaaaa
 	auipc t0, 0xaaaaa
 
+	;;
+	;; Multiplication extension.
+	;;
+
+	;; 1610608640 (kinda convenient).
+	lui t0, 0x5ffff
+	addi t1, zero, 3
+
+	;; t2 == 0x1fffd000
+	mul t2, t0, t1
+	;; t2 == 1
+	mulh t2, t0, t1
+	;; t2 == 0x1ffffaaa
+	div t2, t0, t1
+
+	addi t1, zero, -3
+
+	;; t2 == 0xE0003000
+	mul t2, t0, t1
+	;; t2 == 0xFFFFFFFE
+	mulh t2, t0, t1
+	;; t2 == 0xF5556555
+	div t2, t0, t1
+
+	;; Load 0xFFFFF000 to t0 (-0x1000).
+	lui t0, 0xFFFFF
+	;; Load 0x80000000 to t1.
+	lui t1, 0x80000
+
+	;; t2 == 0xFFFF8000
+	mulsu t2, t0, t1
+	;; t2 == 0x7FFFF800
+	mulu t2, t0, t1
+	;; t2 == 0x70000000
+	remu t2, t0, t1
 func:
 	jalr zero, ra, 0

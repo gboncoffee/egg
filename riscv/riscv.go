@@ -139,11 +139,20 @@ func (m *RiscV) execArithmetic(rd uint8, rs1 uint8, rs2 uint8, func3 uint8, func
 		case 0x0:
 			r = int32(uint64(rs1v) * uint64(rs2v))
 		case 0x1:
-			r = int32((int64(signExtend64(uint32(rs1v))) * int64(signExtend64(uint32(rs2v)))) >> 32)
+			rs1v64 := int64(signExtend64(uint32(rs1v)))
+			rs2v64 := int64(signExtend64(uint32(rs2v)))
+			tmp := rs1v64 * rs2v64
+			r = int32(tmp >> 32)
 		case 0x2:
-			r = int32((int64(signExtend64(uint32(rs1v))) * int64(rs2v)) >> 32)
+			rs1v64 := int64(signExtend64(uint32(rs1v)))
+			rs2v64 := int64(uint64(rs2v)) & 0x00000000ffffffff
+			tmp := int64(rs1v64 * rs2v64) >> 32
+			r = int32(tmp)
 		case 0x3:
-			r = int32(uint64(rs1v) * uint64(rs2v) >> 32)
+			rs1v64 := uint64(rs1v) & 0x00000000ffffffff
+			rs2v64 := uint64(rs2v) & 0x00000000ffffffff
+			tmp := (rs1v64 * rs2v64) >> 32
+			r = int32(tmp)
 		case 0x4:
 			if rs2v == 0 {
 				r = 0

@@ -128,6 +128,10 @@ func main() {
 	}
 
 	if debug {
+		if sym == nil {
+			log.Println("Debugging is not supported for the selected backend.")
+			os.Exit(1)
+		}
 		// Hello fellow Acme user. Plumb this: debugger.go:/debugMachine
 		debugMachine(m, sym, code)
 	} else {
