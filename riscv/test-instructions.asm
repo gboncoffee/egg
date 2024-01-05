@@ -207,5 +207,17 @@ bgeu2:
 	mulh t2, t0, t1
 	;; t2 == 0xF5556555
 	div t2, t0, t1
+
+	;; Load 0xFFFFF000 to t0 (-0x1000).
+	lui t0, 0xFFFFF
+	;; Load 0x80000000 to t1.
+	lui t1, 0x80000
+
+	;; t2 == 0xFFFF8000
+	mulsu t2, t0, t1
+	;; t2 == 0x7FFFF800
+	mulu t2, t0, t1
+	;; t2 == 0x70000000
+	remu t2, t0, t1
 func:
 	jalr zero, ra, 0
