@@ -19,7 +19,7 @@ func listArchs() {
 }
 
 func version() {
-	fmt.Println("EGG - Emulador Genérico do Gabriel - version 0.0.1rc")
+	fmt.Println("EGG - Emulador Genérico do Gabriel - version 1.0.0")
 }
 
 func runMachine(m machine.Machine) {
