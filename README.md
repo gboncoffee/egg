@@ -5,6 +5,10 @@
 
 # EGG, a generic processor emulator
 
+[Documentation for RISC-V](riscv-doc.md)
+
+[Contributing, bugs, feature requests](CONTRIBUTING.md)
+
 EGG stands for "Emulador Genérico do Gabriel" ("Gabriel's Generic Emulator", in
 portuguese). It's a modular emulator for processor architetures, made for
 educational purpouses.
@@ -16,6 +20,11 @@ machine. A MIPS backend is coming soon.
 
 `egg/assembler` also provides a small library for creating assemblers, and the
 support for EGG's debugger.
+
+### UFPR students
+
+Have any questions, or want some help? Mail me: `ggb23@inf.ufpr.br`. Or find me
+at the campus and the laboratories!
 
 ## Installation
 
@@ -69,6 +78,20 @@ msg:
 ```
 
 Each architeture folder has test Assembly files you may use as examples.
+
+## Calls
+
+Standard calls handled by the emulator are as follows. Refer to the architeture
+documentation on how to perform them:
+
+- BREAK (Number 1): Transfer control to debugger or stop the machine.  
+  No arguments.  
+- READ (Number 2): Read input.  
+  - Argument 1: Buffer address.  
+  - Argument 2: Size of input in bytes.  
+- WRITE (Number 3): Write output.  
+  - Argument 1: Buffer address.  
+  - Argument 2: Size of output in bytes.  
 
 ## Debugger
 

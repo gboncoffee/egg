@@ -5,6 +5,10 @@
 
 # EGG, um emulador de processadores genérico
 
+[Documentação para RISC-V](riscv-doc-pt.md)
+
+[Contribuindo, bugs, requisição de features](CONTRIBUINDO.md)
+
 EGG (Emulador Genérico do Gabriel) é um emulador modular de arquiteturas de
 processador, criado para fins educacionais.
 
@@ -15,6 +19,11 @@ Um backend de MIPS é planejado para o futuro.
 
 O pacote `egg/assembler` provém uma pequena biblioteca para criação de
 assemblers e o suporte ao debugger do EGG.
+
+### Estudantes da UFPR
+
+Quer ajuda, ou tem alguma dúvida? Me mande um email: `ggb23@inf.ufpr.br`. Ou
+me procure no campus e nos laboratórios!
 
 ## Instalação
 
@@ -68,6 +77,20 @@ msg:
 
 Cada diretório de cada arquitetura possui programas Assembly de teste que podem
 ser usados de exemplo.
+
+## Chamadas
+
+As chamadas (_environment calls_) respondidas pelo emulator são as
+seguintes. Consulte a documentação da arquitetura para realizá-las:
+
+- BREAK (Número 1): Transfere o controle para o debugger ou finaliza a máquina.  
+  Nenhum argumento.  
+- READ (Número 2): Lê uma entrada da linha de comando.  
+  - Argumento 1: Endereço do buffer.  
+  - Argumento 2: Tamanho da entrada em bytes.  
+- WRITE (Número 3): Escreve uma saída.  
+  - Argumento 1: Endereço do buffer.  
+  - Argumento 2: Tamanho da saída em bytes.  
 
 ## Debugger
 
