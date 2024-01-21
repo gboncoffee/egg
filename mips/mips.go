@@ -57,6 +57,64 @@ func parseR(i uint32) (uint8, uint8, uint8. uint8, uint8) {
 	return rs, rt, rd, shamt, funct
 }
 
+func (m *Mips) execArithmeticInstruction(rs, rt, rd, shamt, funct uint8) {
+	rsv64, _ := m.GetRegister(rs)
+	rtv64, _ := m.GetRegister(rt)
+	rsv := int32(rsv64)
+	rtv := int32(rtv64)
+
+	var r int32
+	switch funct {
+	// add addu
+	// sub subu
+	// slt sltu
+	// and
+	// or
+	// xor
+	// nor
+	case 0x20:
+		r = rsv + rtv
+	case 0x21:
+		r = uint32(uint32(rsv) + uint32(rtv))
+	case 0x22:
+		r = rsv - rtv
+	case 0x23:
+		r = int32(uint32(rsv) - uint32(rtv))
+	case 0x2a:
+		if rsv < rtv {
+			r = 1
+		} else {
+			r = 0
+		}
+	case 0x2b:
+		if uint32(rsv) < uint32(rtv) {
+			r = 1
+		} else {
+			r = 0
+		}
+	case 0x24:
+		r = rsv & rtv
+	case 0x25:
+		r = rsv | rtv
+	case 0x26:
+		r = rsv ^ rtv
+	case 0x27:
+		r = ^(rsv | rtv)
+	// mult
+	case 0x18:
+		res := rsv64 * rtv64
+		m.SetRegister(32, uint64(res >> 32))
+		m.SetRegister(33, uint64(res & 0x00000000ffffffff))
+	// TODO mul muh mulu muhu
+	// mfhi
+	case 0x10:
+		hi, _ := m.GetRegister(32)
+		r = int32(hi)
+	}
+
+	m.SetRegister(uint64(rd), uint64(r))
+}
+
 func (m *Mips) execute(i uint32) (*machine.Call, error) {
 	opcode := i & 0b111111
 	switch opcode {
