@@ -1,15 +1,15 @@
 package main
 
 import (
-	"flag"
-	"log"
-	"fmt"
-	"os"
 	"bufio"
+	"flag"
+	"fmt"
 	"io"
+	"log"
+	"os"
 
-	"github.com/gboncoffee/egg/riscv"
 	"github.com/gboncoffee/egg/machine"
+	"github.com/gboncoffee/egg/riscv"
 )
 
 // Put new architetures here...
