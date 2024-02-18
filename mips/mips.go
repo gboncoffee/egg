@@ -32,7 +32,7 @@ type Mips struct {
 // addu DONE
 // clo DONE
 // clz DONE
-// lui
+// lui DONE
 // seb DONE
 // seh DONE
 // sub DONE
@@ -44,17 +44,17 @@ type Mips struct {
 // srl DONE
 // srlv DONE
 // and DONE
-// andi
+// andi DONE
 // nor DONE
 // or DONE
-// ori
+// ori DONE
 // xor DONE
-// xori
+// xori DONE
 // movn DONE
 // movz DONE
 // slt DONE
-// slti
-// sltiu
+// slti DONE
+// sltiu DONE
 // sltu DONE
 // div DONE
 // mult DONE
@@ -62,18 +62,18 @@ type Mips struct {
 // mflo DONE
 // mthi DONE
 // mtlo DONE
-// beq
-// bgez
-// bgtz
-// blez
-// bltz
-// bne
+// beq DONE
+// bgez DONE
+// bgtz DONE
+// blez DONE
+// bltz DONE
+// bne DONE
 // break
 // syscall
-// j
-// jal
-// jalr
-// jr
+// j DONE
+// jal DONE
+// jalr DONE
+// jr DONE
 // lb
 // lbu
 // lh
@@ -138,6 +138,13 @@ func (m *Mips) execSpecial(rs, rt, rd, shamt, funct uint8) {
 	rdv64, _ := m.GetRegister(uint64(rd))
 	r = int32(rdv64)
 	switch funct {
+	// jalr
+	// jr
+	case 9:
+		r = int32(m.pc + 4)
+		fallthrough
+	case 8:
+		m.pc = uint32(rsv)
 	// add addu
 	// sub subu
 	// slt sltu
@@ -272,6 +279,53 @@ func (m *Mips) execSpecial3(rs, rt, rd, shamt, funct uint8) {
 	m.SetRegister(uint64(rd), uint64(r))
 }
 
+func (m *Mips) execRegimm(rs, shamt uint8, imm uint32) {
+	rsv64, _ := m.GetRegister(uint64(rs))
+
+	switch shamt {
+	// bltz
+	case 0:
+		if int32(rsv64) < 0 {
+			m.pc = uint32(int32(m.pc) + int32(imm << 2) - 4)
+		}
+	// bgez
+	case 1:
+		if int32(rsv64) >= 0 {
+			m.pc = uint32(int32(m.pc) + int32(imm << 2) - 4)
+		}
+	}
+}
+
+func (m *Mips) executeBeq(rs, rt uint8, imm uint32) {
+	rsv64, _ := m.GetRegister(uint64(rs))
+	rtv64, _ := m.GetRegister(uint64(rt))
+	if rsv64 == rtv64 {
+		m.pc = uint32(int32(m.pc) + int32(imm << 2) - 4)
+	}
+}
+
+func (m *Mips) executeBne(rs, rt uint8, imm uint32) {
+	rsv64, _ := m.GetRegister(uint64(rs))
+	rtv64, _ := m.GetRegister(uint64(rt))
+	if rsv64 != rtv64 {
+		m.pc = uint32(int32(m.pc) + int32(imm << 2) - 4)
+	}
+}
+
+func (m *Mips) executeBgtz(rs uint8, imm uint32) {
+	rsv64, _ := m.GetRegister(uint64(rs))
+	if int32(rsv64) > 0 {
+		m.pc = uint32(int32(m.pc) + int32(imm << 2) - 4)
+	}
+}
+
+func (m *Mips) executeBlez(rs uint8, imm uint32) {
+	rsv64, _ := m.GetRegister(uint64(rs))
+	if int32(rsv64) <= 0 {
+		m.pc = uint32(int32(m.pc) + int32(imm << 2) - 4)
+	}
+}
+
 func (m *Mips) executeAddi(rs, rt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	r := int32(rsv64) + int32(imm)
@@ -284,18 +338,96 @@ func (m *Mips) executeAddiu(rs, rt uint8, imm uint32) {
 	m.SetRegister(uint64(rt), uint64(r))
 }
 
+func (m *Mips) executeAndi(rs, rt uint8, imm uint32) {
+	rsv64, _ := m.GetRegister(uint64(rs))
+	r := uint32(rsv64) & imm
+	m.SetRegister(uint64(rt), uint64(r))
+}
+
+func (m *Mips) executeOri(rs, rt uint8, imm uint32) {
+	rsv64, _ := m.GetRegister(uint64(rs))
+	r := uint32(rsv64) | imm
+	m.SetRegister(uint64(rt), uint64(r))
+}
+
+func (m *Mips) executeXori(rs, rt uint8, imm uint32) {
+	rsv64, _ := m.GetRegister(uint64(rs))
+	r := uint32(rsv64) ^ imm
+	m.SetRegister(uint64(rt), uint64(r))
+}
+
+func (m *Mips) executeSlti(rs, rt uint8, imm uint32) {
+	rsv64, _ := m.GetRegister(uint64(rs))
+	if int32(rsv64) < int32(imm) {
+		m.SetRegister(uint64(rt), 1)
+	} else {
+		m.SetRegister(uint64(rt), 0)
+	}
+}
+
+func (m *Mips) executeSltiu(rs, rt uint8, imm uint32) {
+	rsv64, _ := m.GetRegister(uint64(rs))
+	if uint32(rsv64) < imm {
+		m.SetRegister(uint64(rt), 1)
+	} else {
+		m.SetRegister(uint64(rt), 0)
+	}
+}
+
+func (m *Mips) executeLui(rt uint8, imm uint32) {
+	m.SetRegister(uint64(rt), uint64(imm << 16))
+}
+
+func (m *Mips) executeJ(imm uint32) {
+	t := (m.pc + 4) & 0xf0000000
+	t = t | (imm << 2)
+	m.pc = t - 4
+}
+
+func (m *Mips) executeJal(imm uint32) {
+	m.SetRegister(31, uint64(m.pc + 4))
+	t := (m.pc + 4) & 0xf0000000
+	t = t | (imm << 2)
+	m.pc = t - 4
+}
+
 func (m *Mips) execute(i uint32) (*machine.Call, error) {
 	opcode := i & 0b111111
 	switch opcode {
 	case 0:
 		rs, rt, rd, shamt, funct := parseR(i)
 		m.execSpecial(rs, rt, rd, shamt, funct)
+	case 1:
+		rs, shamt, imm := parseI(i)
+		m.execRegimm(rs, shamt, imm)
+	case 2:
+		imm := parseJ(i)
+		m.executeJ(imm)
+	case 3:
+		imm := parseJ(i)
+		m.executeJal(imm)
 	case 28:
 		rs, rt, rd, shamt, funct := parseR(i)
 		m.execSpecial2(rs, rt, rd, shamt, funct)
 	case 31:
 		rs, rt, rd, shamt, funct := parseR(i)
 		m.execSpecial3(rs, rt, rd, shamt, funct)
+	// beq
+	case 4:
+		rs, rt, imm := parseI(i)
+		m.executeBeq(rs, rt, imm)
+	// bne
+	case 5:
+		rs, rt, imm := parseI(i)
+		m.executeBne(rs, rt, imm)
+	// blez
+	case 6:
+		rs, _, imm := parseI(i)
+		m.executeBlez(rs, imm)
+	// bgtz
+	case 7:
+		rs, _, imm := parseI(i)
+		m.executeBgtz(rs, imm)
 	// addi
 	case 8:
 		rs, rt, imm := parseI(i)
@@ -304,9 +436,35 @@ func (m *Mips) execute(i uint32) (*machine.Call, error) {
 	case 9:
 		rs, rt, imm := parseI(i)
 		m.executeAddiu(rs, rt, imm)
+	// slti
+	case 10:
+		rs, rt, imm := parseI(i)
+		m.executeSlti(rs, rt, imm)
+	// sltiu
+	case 11:
+		rs, rt, imm := parseI(i)
+		m.executeSltiu(rs, rt, imm)
+	// andi
+	case 12:
+		rs, rt, imm := parseI(i)
+		m.executeAndi(rs, rt, imm)
+	// ori
+	case 13:
+		rs, rt, imm := parseI(i)
+		m.executeOri(rs, rt, imm)
+	// xori
+	case 14:
+		rs, rt, imm := parseI(i)
+		m.executeXori(rs, rt, imm)
+	// lui
+	case 15:
+		_, rt, imm := parseI(i)
+		m.executeLui(rt, imm)
 	default:
 		return nil, errors.New(fmt.Sprintf("Unknown opcode: %b", opcode))
 	}
+
+	m.pc += 4
 
 	return nil, nil
 }
