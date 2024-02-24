@@ -68,24 +68,22 @@ type Mips struct {
 // blez DONE
 // bltz DONE
 // bne DONE
-// break
-// syscall
+// break DONE
+// syscall DONE
 // j DONE
 // jal DONE
 // jalr DONE
 // jr DONE
-// lb
-// lbu
-// lh
-// lhu
-// lw
-// lwl
-// lwr
-// sb
-// sh
-// sw
-// swl
-// swr
+// lb DONE
+// lbu DONE
+// lh DONE
+// lhu DONE
+// lw DONE
+// lwl DONE
+// lwr DONE
+// sb DONE
+// sh DONE
+// sw DONE
 //
 
 //
@@ -391,12 +389,130 @@ func (m *Mips) executeJal(imm uint32) {
 	m.pc = t - 4
 }
 
+func (m *Mips) executeLb(rs, rt uint8, off uint32) {
+	offs := int32(off)
+	rsv64, _ := m.GetRegister(uint64(rs))
+	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
+
+	memb := mem & 0xff
+	sign := memb >> 7
+	sign = (^(sign - 1)) << 8
+	r := uint64(memb | sign)
+
+	m.SetRegister(uint64(rt), r)
+}
+
+func (m *Mips) executeLbu(rs, rt uint8, off uint32) {
+	offs := int32(off)
+	rsv64, _ := m.GetRegister(uint64(rs))
+	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
+
+	m.SetRegister(uint64(rt), uint64(mem))
+}
+
+func (m *Mips) executeLh(rs, rt uint8, off uint32) {
+	offs := int32(off)
+	rsv64, _ := m.GetRegister(uint64(rs))
+	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
+	mem2, _ := m.GetMemory(uint64(int32(rsv64) + offs))
+
+	memb := uint64(mem) | (uint64(mem2) << 8)
+	sign := memb >> 15
+	sign = (^(sign - 1)) << 16
+	r := uint64(memb | sign)
+
+	m.SetRegister(uint64(rt), r)
+}
+
+func (m *Mips) executeLhu(rs, rt uint8, off uint32) {
+	offs := int32(off)
+	rsv64, _ := m.GetRegister(uint64(rs))
+	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
+	mem2, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 1)
+
+	m.SetRegister(uint64(rt), uint64(mem) | (uint64(mem2) << 8))
+}
+
+func (m *Mips) executeLw(rs, rt uint8, off uint32) {
+	offs := int32(off)
+	rsv64, _ := m.GetRegister(uint64(rs))
+	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
+	mem2, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 1)
+	mem3, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 2)
+	mem4, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 3)
+
+	m.SetRegister(uint64(rt), uint64(mem) | (uint64(mem2) << 8) | (uint64(mem3) << 16) | (uint64(mem4) << 24))
+}
+
+func (m *Mips) executeLwl(rs, rt uint8, off uint32) {
+	offs := int32(off)
+	rsv64, _ := m.GetRegister(uint64(rs))
+	rtv64, _ := m.GetRegister(uint64(rt))
+	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 2)
+	mem2, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 3)
+
+	m.SetRegister(uint64(rt), ((uint64(mem) | (uint64(mem2) << 8)) << 16) | (rtv64 & 0xffff))
+}
+
+func (m *Mips) executeLwr(rs, rt uint8, off uint32) {
+	offs := int32(off)
+	rsv64, _ := m.GetRegister(uint64(rs))
+	rtv64, _ := m.GetRegister(uint64(rt))
+	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
+	mem2, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 1)
+
+	m.SetRegister(uint64(rt), (uint64(mem) | (uint64(mem2) << 8)) | (rtv64 & 0xffff0000))
+}
+
+func (m *Mips) executeSb(rs, rt uint8, off uint32) {
+	offs := int32(off)
+	rsv64, _ := m.GetRegister(uint64(rs))
+	rtv64, _ := m.GetRegister(uint64(rt))
+
+	m.SetMemory(uint64(int32(rsv64) + offs), uint8(rtv64 & 0xff))
+}
+
+func (m *Mips) executeSh(rs, rt uint8, off uint32) {
+	offs := int32(off)
+	rsv64, _ := m.GetRegister(uint64(rs))
+	rtv64, _ := m.GetRegister(uint64(rt))
+
+	m.SetMemory(uint64(int32(rsv64) + offs), uint8(rtv64 & 0xff))
+	m.SetMemory(uint64(int32(rsv64) + offs) + 1, uint8((rtv64 & 0xff00) >> 8))
+}
+
+func (m *Mips) executeSw(rs, rt uint8, off uint32) {
+	offs := int32(off)
+	rsv64, _ := m.GetRegister(uint64(rs))
+	rtv64, _ := m.GetRegister(uint64(rt))
+
+	m.SetMemory(uint64(int32(rsv64) + offs), uint8(rtv64 & 0xff))
+	m.SetMemory(uint64(int32(rsv64) + offs) + 1, uint8((rtv64 & 0xff00) >> 8))
+	m.SetMemory(uint64(int32(rsv64) + offs) + 2, uint8((rtv64 & 0xff0000) >> 16))
+	m.SetMemory(uint64(int32(rsv64) + offs) + 3, uint8((rtv64 & 0xff000000) >> 24))
+}
+
 func (m *Mips) execute(i uint32) (*machine.Call, error) {
 	opcode := i & 0b111111
 	switch opcode {
 	case 0:
 		rs, rt, rd, shamt, funct := parseR(i)
-		m.execSpecial(rs, rt, rd, shamt, funct)
+		switch funct {
+		case 0b1101:
+			num := machine.SYS_BREAK
+			call := machine.Call{uint64(num), 0, 0}
+			m.pc += 4
+			return &call, nil
+		case 0b1100:
+			num, _ := m.GetRegister(2)
+			a1, _ := m.GetRegister(4)
+			a2, _ := m.GetRegister(5)
+			call := machine.Call{num, a1, a2}
+			m.pc += 4
+			return &call, nil
+		default:
+			m.execSpecial(rs, rt, rd, shamt, funct)
+		}
 	case 1:
 		rs, shamt, imm := parseI(i)
 		m.execRegimm(rs, shamt, imm)
@@ -460,6 +576,46 @@ func (m *Mips) execute(i uint32) (*machine.Call, error) {
 	case 15:
 		_, rt, imm := parseI(i)
 		m.executeLui(rt, imm)
+	// lb
+	// lbu
+	// lh
+	// lhu
+	// lw
+	// lwl
+	// lwr
+	case 32:
+		rs, rt, off := parseI(i)
+		m.executeLb(rs, rt, off)
+	case 36:
+		rs, rt, off := parseI(i)
+		m.executeLbu(rs, rt, off)
+	case 33:
+		rs, rt, off := parseI(i)
+		m.executeLh(rs, rt, off)
+	case 37:
+		rs, rt, off := parseI(i)
+		m.executeLhu(rs, rt, off)
+	case 35:
+		rs, rt, off := parseI(i)
+		m.executeLw(rs, rt, off)
+	case 34:
+		rs, rt, off := parseI(i)
+		m.executeLwl(rs, rt, off)
+	case 38:
+		rs, rt, off := parseI(i)
+		m.executeLwr(rs, rt, off)
+	// sb
+	// sh
+	// sw
+	case 40:
+		rs, rt, off := parseI(i)
+		m.executeSb(rs, rt, off)
+	case 41:
+		rs, rt, off := parseI(i)
+		m.executeSh(rs, rt, off)
+	case 43:
+		rs, rt, off := parseI(i)
+		m.executeSw(rs, rt, off)
 	default:
 		return nil, errors.New(fmt.Sprintf("Unknown opcode: %b", opcode))
 	}
