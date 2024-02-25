@@ -103,8 +103,8 @@ func signExtend64(n uint32) uint64 {
 // - rt
 // - imm
 func parseI(i uint32) (uint8, uint8, uint32) {
-	rs := i & 0b11111000000000000000000000
-	rt := i & 0b111110000000000000000
+	rs := (i & 0b11111000000000000000000000) >> 21
+	rt := (i & 0b111110000000000000000) >> 16
 	imm := i & 0xffff
 
 	return uint8(rs), uint8(rt), imm
@@ -122,10 +122,10 @@ func parseJ(i uint32) uint32 {
 // - shamt
 // - funct
 func parseR(i uint32) (uint8, uint8, uint8, uint8, uint8) {
-	rs := uint8(i & 0b11111000000000000000000000)
-	rt := uint8(i & 0b111110000000000000000)
-	rd := uint8(i & 0b1111100000000000)
-	shamt := uint8(i & 0b11111000000)
+	rs := uint8((i & 0b11111000000000000000000000) >> 21)
+	rt := uint8((i & 0b111110000000000000000) >> 16)
+	rd := uint8((i & 0b1111100000000000) >> 11)
+	shamt := uint8((i & 0b11111000000) >> 6)
 	funct := uint8(i & 0b111111)
 
 	return rs, rt, rd, shamt, funct
@@ -500,7 +500,7 @@ func (m *Mips) executeSw(rs, rt uint8, off uint32) {
 }
 
 func (m *Mips) execute(i uint32) (*machine.Call, error) {
-	opcode := i & 0b111111
+	opcode := i >> 26
 	switch opcode {
 	case 0:
 		rs, rt, rd, shamt, funct := parseR(i)

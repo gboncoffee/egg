@@ -10,12 +10,14 @@ import (
 
 	"github.com/gboncoffee/egg/machine"
 	"github.com/gboncoffee/egg/riscv"
+	"github.com/gboncoffee/egg/mips"
 )
 
 // Put new architetures here...
 func listArchs() {
 	fmt.Println(`Currently supported architetures:
-'riscv' - RISC-V IM, 32 bits`)
+'riscv' - RISC-V IM, 32 bits
+'mips' - Subset of MIPS32 (experimental)`)
 }
 
 func version() {
@@ -96,6 +98,9 @@ func main() {
 	switch architeture {
 	case "riscv":
 		var r riscv.RiscV
+		m = &r
+	case "mips":
+		var r mips.Mips
 		m = &r
 	default:
 		log.Println(fmt.Sprintf("Unknown architeture: %v", architeture))
