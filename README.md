@@ -7,6 +7,8 @@
 
 [Documentation for RISC-V](riscv-doc.md)
 
+[Documentation for MIPS](mips-doc.md)
+
 [Contributing, bugs, feature requests](CONTRIBUTING.md)
 
 EGG stands for "Emulador Genérico do Gabriel" ("Gabriel's Generic Emulator", in
@@ -14,9 +16,8 @@ portuguese). It's a modular emulator for processor architetures, made for
 educational purpouses.
 
 The `egg` package itself provides only an interface for interacting with
-machines, thus supporting different architeture backends. Currently, the only
-backend implemented is `egg/riscv`, which implements a RISC-V IM 32 bits
-machine. A MIPS backend is coming soon.
+machines, thus supporting different architeture backends. Currently, there are
+RISC-V IM 32 bits and a MIPS32 (experimental) backends implemented.
 
 `egg/assembler` also provides a small library for creating assemblers, and the
 support for EGG's debugger.
@@ -39,13 +40,12 @@ machine nowadays.
 
 Running the emulator with an Assembly file will assemble it and start a machine
 to run it on. By default, the machine is a RISC-V IM 32 bits. Use the flag `-a`
-or `-arch` to change the architeture (currently only RISC-V is supported, a MIPS
-backend is coming soon). Run `egg -h` to see all command line options and `egg
--l` to see all supported architetures.
+or `-arch` to change the architeture. Run `egg -h` to see all command line
+options and `egg -l` to see all supported architetures.
 
 The Assembly syntax is architeture-dependent. Though, a library is provided for
-creating assembler, so backends may use the same overall syntax (RISC-V uses
-it).
+creating assembler, so backends may use the same overall syntax (both RISC-V and
+MIPS uses it).
 
 An example follows:
 

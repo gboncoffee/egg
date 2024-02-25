@@ -7,7 +7,7 @@ the [README](README.md). It implements the registers and instructions from the
 base integer set and the multiplication extension described in
 [this](riscv/riscv.pdf) document.
 
-Environment call numbers are placed in the `a7` registers, and arguments are
+Environment call numbers are placed in the `a7` register, and arguments are
 placed in `a0` and `a1`.
 
 An `ebreak` instruction will perform a BREAK call.

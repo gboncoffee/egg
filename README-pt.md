@@ -7,15 +7,16 @@
 
 [Documentação para RISC-V](riscv-doc-pt.md)
 
+[Documentação para MIPS](mips-doc-pt.md)
+
 [Contribuindo, bugs, requisição de features](CONTRIBUINDO.md)
 
 EGG (Emulador Genérico do Gabriel) é um emulador modular de arquiteturas de
 processador, criado para fins educacionais.
 
 O pacote `egg` provém uma interface para interagir com máquinas, assim provendo
-suporte a diferentes backends provendo arquiteturas. No momento, há somente o
-pacote `egg/riscv` de backend, implementando uma máquina RISC-V IM de 32 bits.
-Um backend de MIPS é planejado para o futuro.
+suporte a diferentes backends provendo arquiteturas. No momento, há backends de
+RISC-V IM de 32 bits e MIPS32 (experimental).
 
 O pacote `egg/assembler` provém uma pequena biblioteca para criação de
 assemblers e o suporte ao debugger do EGG.
@@ -38,14 +39,13 @@ Windows atualmente.
 
 Rode o emulador com um arquivo de Assembly para montá-lo e iniciar uma máquina
 rodando o programa. O backend utilizado por padrão é uma máquina de RISC-V 32
-bits. Use a opção `-a` ou `-arch` para mudar a arquitetura (atualmente há
-somente a opção RISC-V. Um backend de MIPS é planejado para o futuro). A opção
-`-h` mostra todas as opções de linha de comando e a opção `-l` mostra todas as
-arquiteturas suportadas.
+bits. Use a opção `-a` ou `-arch` para mudar a arquitetura. A opção `-h` mostra
+todas as opções de linha de comando e a opção `-l` mostra todas as arquiteturas
+suportadas.
 
 A sintaxe de Assembly varia com a arquitetura, porém, como o projeto provém uma
-biblioteca para tal, os backends podem usar uma sintaxe bem semelhante (RISC-V
-usa). Exemplo:
+biblioteca para tal, os backends podem usar uma sintaxe bem semelhante (RISC-V e
+MIPS usam). Exemplo:
 
 ```asm
 ; Ponto e vírgula define comentários até o fim da linha.
