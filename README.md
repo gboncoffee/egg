@@ -5,6 +5,8 @@
 
 # EGG, a generic processor emulator
 
+[Video tutorial](https://youtu.be/RtKvvXgdVak?si=OtjkNxSGmRGNou67)
+
 [Documentation for RISC-V](riscv-doc.md)
 
 [Documentation for MIPS](mips-doc.md)
