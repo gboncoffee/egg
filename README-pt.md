@@ -5,7 +5,7 @@
 
 # EGG, um emulador de processadores genérico
 
-[Tutorial em Vídeo](https://youtu.be/RtKvvXgdVak?si=OtjkNxSGmRGNou67)
+[Tutorial em Vídeo (legendado)](https://youtu.be/RtKvvXgdVak?si=OtjkNxSGmRGNou67)
 
 [Documentação para RISC-V](riscv-doc-pt.md)
 
