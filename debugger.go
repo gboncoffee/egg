@@ -515,27 +515,31 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 			}
 		}
 
-		switch wsl[0] {
-		case "help", "h":
-			debuggerHelp()
-		case "print", "p":
-			debuggerPrint(m, sym, wsl[1:])
-		case "next", "n":
-			debuggerNext(m, sym, in)
-		case "continue", "c":
-			debuggerContinue(m, sym, breakpoints, in)
-		case "break", "b":
-			debuggerBreakpoint(m, sym, &breakpoints, wsl[1:])
-		case "remove", "r":
-			debuggerRemove(m, sym, &breakpoints, wsl[1:])
-		case "dump", "d":
-			debuggerDump(m, wsl[1:], prog)
-		case "exit", "e", "quit", "q":
-			goto EXIT
-		case "ping":
-			fmt.Println("pong!")
-		default:
-			fmt.Printf("no such command: %v\n", wsl[0])
+		if len(wsl) > 0 {
+			switch wsl[0] {
+			case "help", "h":
+				debuggerHelp()
+			case "print", "p":
+				debuggerPrint(m, sym, wsl[1:])
+			case "next", "n":
+				debuggerNext(m, sym, in)
+			case "continue", "c":
+				debuggerContinue(m, sym, breakpoints, in)
+			case "break", "b":
+				debuggerBreakpoint(m, sym, &breakpoints, wsl[1:])
+			case "remove", "r":
+				debuggerRemove(m, sym, &breakpoints, wsl[1:])
+			case "dump", "d":
+				debuggerDump(m, wsl[1:], prog)
+			case "exit", "e", "quit", "q":
+				goto EXIT
+			case "ping":
+				fmt.Println("pong!")
+			default:
+				fmt.Printf("no such command: %v\n", wsl[0])
+			}
+		} else {
+			fmt.Println("")
 		}
 
 		fmt.Print("egg> ")
