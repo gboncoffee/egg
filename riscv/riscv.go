@@ -124,7 +124,7 @@ func parseJ(i uint32) (uint8, uint32) {
 	imm = imm | ((i & 0b01111111111000000000000000000000) >> 20)
 	imm = imm | ((i & 0b10000000000000000000000000000000) >> 20)
 
-	return rd, imm
+	return rd, signExtend(imm, 20)
 }
 
 func (m *RiscV) execArithmetic(rd uint8, rs1 uint8, rs2 uint8, func3 uint8, func7 uint8) {
@@ -365,7 +365,9 @@ func (m *RiscV) execBranch(rs1 uint8, rs2 uint8, imm uint32, func3 uint8) {
 
 func (m *RiscV) execJal(rd uint8, imm uint32) {
 	m.SetRegister(uint64(rd), uint64(m.pc+4))
-	m.pc += imm
+
+	r := int32(m.pc) + int32(imm)
+	m.pc = uint32(r)
 }
 
 func (m *RiscV) execJalr(rd uint8, rs1 uint8, imm uint32) {
