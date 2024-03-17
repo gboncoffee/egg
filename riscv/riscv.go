@@ -95,10 +95,10 @@ func parseB(i uint32) (uint8, uint8, uint32, uint8) {
 
 	imm := (i & 0b111100000000) >> 7
 	imm = imm | ((i & 0b10000000) << 4)
-	imm = imm | ((i & 0b01111110000000000000000000000000) >> 19)
+	imm = imm | ((i & 0b01111110000000000000000000000000) >> 20)
 	imm = imm | ((i & 0b10000000000000000000000000000000) >> 20)
 
-	return rs1, rs2, signExtend(imm, 13), func3
+	return rs1, rs2, signExtend(imm, 12), func3
 }
 
 // Parses U-type instructions.
@@ -333,30 +333,37 @@ func (m *RiscV) execBranch(rs1 uint8, rs2 uint8, imm uint32, func3 uint8) {
 	rs2v64, _ := m.GetRegister(uint64(rs2))
 	rs2v := int32(rs2v64)
 
+	var r int32
 	switch func3 {
 	case 0x0:
 		if rs1v == rs2v {
-			m.pc = (m.pc + imm) - 4
+			r = int32(m.pc) + int32(imm)
+			m.pc = uint32(r - 4)
 		}
 	case 0x1:
 		if rs1v != rs2v {
-			m.pc = (m.pc + imm) - 4
+			r = int32(m.pc) + int32(imm)
+			m.pc = uint32(r - 4)
 		}
 	case 0x4:
 		if rs1v < rs2v {
-			m.pc = (m.pc + imm) - 4
+			r = int32(m.pc) + int32(imm)
+			m.pc = uint32(r - 4)
 		}
 	case 0x5:
 		if rs1v >= rs2v {
-			m.pc = (m.pc + imm) - 4
+			r = int32(m.pc) + int32(imm)
+			m.pc = uint32(r - 4)
 		}
 	case 0x6:
 		if uint32(rs1v) < uint32(rs2v) {
-			m.pc = (m.pc + imm) - 4
+			r = int32(m.pc) + int32(imm)
+			m.pc = uint32(r - 4)
 		}
 	case 0x7:
 		if uint32(rs1v) >= uint32(rs2v) {
-			m.pc = (m.pc + imm) - 4
+			r = int32(m.pc) + int32(imm)
+			m.pc = uint32(r - 4)
 		}
 	}
 
@@ -667,7 +674,7 @@ func assembleBranch(t assembler.ResolvedToken, addr int) (uint32, error) {
 		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction '%s', expected 3 arguments", t.Value))
 	}
 
-	t.Args[2] = uint64(signExtend64(uint32(t.Args[2])) - uint64(addr))
+	t.Args[2] = uint64(int64(signExtend64(uint32(t.Args[2]))) - int64(addr))
 
 	code := uint32(0b1100011)
 	code = code | uint32(t.Args[0]<<15)
