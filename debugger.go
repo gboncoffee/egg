@@ -41,6 +41,9 @@ dump <address>@<length> <filename>
 rewind
 	Reloads the machine, i.e., asks it to return to it's original state.
 	Shortcut: rew
+set <expr>[@<length>] <content>
+	Changes the content of a register or memory.
+	Shortcut: s
 exit
 	Terminate debugging session.
 	Shortcut: e
@@ -53,6 +56,7 @@ The print command generally follows this rules:
   it's contents;
 - If the expression is a register with a length (e.g., t1@1, ra@7, etc), it
   prints the content of the memory addressed by the content of the register.
+The set command works the same way.
 
 The dump command also accepts registers, but always dereference them.
 
@@ -511,6 +515,78 @@ func debuggerRewind(m machine.Machine, prog []uint8) {
 	}
 }
 
+// Returns length (second value) as 0 if it's a register.
+func getSetExpr(m machine.Machine, expr string) (uint64, uint64, error) {
+	addr, length, has_at := strings.Cut(expr, "@")
+	addr = strings.TrimSpace(addr)
+	length = strings.TrimSpace(length)
+
+	if !has_at {
+		reg, err := m.GetRegisterNumber(addr)
+		if err != nil {
+			return 0, 0, errors.New(fmt.Sprintf("Cannot get register number: %v", err))
+		}
+		return reg, 0, nil
+	}
+
+	var a uint64
+	reg, err := m.GetRegisterNumber(addr)
+	if err != nil {
+		a, err = strconv.ParseUint(addr, 0, 64)
+		if err != nil {
+			return 0, 0, errors.New(fmt.Sprintf("%v is not a register or address", addr))
+		}
+	} else {
+		a, _ = m.GetRegister(reg)
+	}
+
+	l, err := strconv.ParseUint(length, 0, 64)
+	if err != nil {
+		return 0, 0, errors.New(fmt.Sprintf("%v is not a number.", length))
+	}
+
+	return a, l, nil
+}
+
+func debuggerSet(m machine.Machine, args []string) {
+	if len(args) < 2 {
+		fmt.Printf("set expects two arguments: <expr>[@<length>] <value>")
+		return
+	}
+
+	addr, length, err := getSetExpr(m, args[0])
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+
+	value, err := strconv.ParseUint(args[1], 0, 64)
+	if err != nil {
+		fmt.Printf("Cannot parse %v as number: %v", args[1], err)
+		return
+	}
+
+	if length == 0 {
+		err := m.SetRegister(addr, value)
+		if err != nil {
+			fmt.Printf("Error while changing register content: %v\n", err)
+		}
+	} else {
+		arr := make([]uint8, length)
+		// I hope this is somehow optimized out.
+		shift := 0
+		for i, _ := range arr {
+			arr[i] = uint8(value >> shift)
+			shift += 8
+		}
+
+		err := m.SetMemoryChunk(addr, arr)
+		if err != nil {
+			fmt.Printf("Error while changing memory content: %v\n", err)
+		}
+	}
+}
+
 func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8) {
 	version()
 	fmt.Println("Type 'help' for a list of commands.")
@@ -552,6 +628,8 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 				debuggerDump(m, wsl[1:], prog)
 			case "rewind", "rew":
 				debuggerRewind(m, prog)
+			case "set", "s":
+				debuggerSet(m, wsl[1:])
 			case "exit", "e", "quit", "q":
 				goto EXIT
 			case "ping":
