@@ -13,7 +13,7 @@ import (
 	"github.com/gboncoffee/egg/mips"
 )
 
-// Put new architetures here...
+// Put new architetures here... (main.go:/switch architeture)
 func listArchs() {
 	fmt.Println(`Currently supported architetures:
 'riscv' - RISC-V IM, 32 bits
@@ -21,7 +21,7 @@ func listArchs() {
 }
 
 func version() {
-	fmt.Println("EGG - Emulador Genérico do Gabriel - version 1.1.3")
+	fmt.Println("EGG - Emulador Genérico do Gabriel - version 1.2.0")
 }
 
 func runMachine(m machine.Machine) {
@@ -94,7 +94,7 @@ func main() {
 		return
 	}
 
-	// ...and in the switch case!
+	// ...and in the switch case! (main.go:/func listArchs)
 	switch architeture {
 	case "riscv":
 		var r riscv.RiscV
