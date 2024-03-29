@@ -18,25 +18,35 @@ func debuggerHelp() {
 
 help
 	Shows this help.
+	Shortcut: h
 print <expr>[@<length>]
 	Prints the content of registers and memory.
+	Shortcut: p
 next
 	Executes the next instruction, then pauses.
+	Shortcut: n
 continue
 	Continue execution until a BREAK call or breakpoint.
+	Shortcut: c
 break [expr]
 	With an argument, creates a new breakpoint. With no argument, shows all
 	breakpoints. Accepts numbers and Assembly labels.
+	Shortcut: b
 remove <expr>
 	Removes a breakpoint. Accepts numbers and Assembly labels.
+	Shortcut: r
 dump <address>@<length> <filename>
 	Dumps the content of memory to a file.
+	Shortcut: d
+rewind
+	Reloads the machine, i.e., asks it to return to it's original state.
+	Shortcut: rew
 exit
 	Terminate debugging session.
+	Shortcut: e
 quit
 	Alias to exit.
-
-All commands have a shortcut of it's first letter: h, p, n, etc.
+	Shortcut: q
 
 The print command generally follows this rules:
 - If the expression is only a register (e.g., x1, t1, zero, ra, etc), it prints
@@ -492,6 +502,15 @@ func debuggerDump(m machine.Machine, args []string, prog []uint8) {
 	f.Close()
 }
 
+func debuggerRewind(m machine.Machine, prog []uint8) {
+	err := m.LoadProgram(prog)
+	if err != nil {
+		fmt.Printf("Error while reloading machine: %v\n", err)
+	} else {
+		fmt.Printf("Reloaded machine.\n")
+	}
+}
+
 func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8) {
 	version()
 	fmt.Println("Type 'help' for a list of commands.")
@@ -531,6 +550,8 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 				debuggerRemove(m, sym, &breakpoints, wsl[1:])
 			case "dump", "d":
 				debuggerDump(m, wsl[1:], prog)
+			case "rewind", "rew":
+				debuggerRewind(m, prog)
 			case "exit", "e", "quit", "q":
 				goto EXIT
 			case "ping":
