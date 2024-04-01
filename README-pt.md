@@ -9,6 +9,8 @@
 
 [Documentação para RISC-V](riscv-doc-pt.md)
 
+[RISC-V Cheatsheet](riscv/cheatsheet-pt.md)
+
 [Documentação para MIPS](mips-doc-pt.md)
 
 [Contribuindo, bugs, requisição de features](CONTRIBUINDO.md)
