@@ -2,11 +2,11 @@
 
 ## Instruções
 
-![instructions.png]
+![Instructions](instructions.png)
 
 ## Registradores
 
-![registers.png]
+![Registers](registers.png)
 
 ## Sintaxe
 
