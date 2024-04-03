@@ -48,7 +48,7 @@ Coloca-se o número em 'a7' e argumentos em 'a0' e 'a1'.
 ## Carregar imediatos
 
 ```asm
-	; Números menores que 12 bits
+	; Números menores que 12 bits (em complemento de 2).
 	addi <reg>, zero, <num>
 	; Exemplo: carregar o número 42 em t0
 	addi t0, zero, 42
@@ -61,6 +61,7 @@ Coloca-se o número em 'a7' e argumentos em 'a0' e 'a1'.
 	addi t0, t0, 0x747
 
 	; Números maiores que 12 bits sem extensão de sinal
+	; (caso em que o bit 11 é 1 porém não se quer extender o sinal)
 	; Para isso, adiciona-se 1 na parte alta para assim corrigir o valor com a extensão
 	lui <reg>, <parte alta + 1>
 	addi <reg>, <reg>, <parte baixa>
@@ -77,11 +78,11 @@ Coloca-se o número em 'a7' e argumentos em 'a0' e 'a1'.
 	
 	; "push"
 	addi sp, sp, -4
-	lw sp, <reg>, 0
+	sw sp, <reg>, 0
 	
 	; "pop"
 	addi sp, sp, 4
-	lw sp, <reg>, -4
+	lw <reg>, sp, -4
 ```
 
 ## Chamar funções
