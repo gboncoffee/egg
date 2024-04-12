@@ -22,6 +22,9 @@ help
 print <expr>[@<length>]
 	Prints the content of registers and memory.
 	Shortcut: p
+printall
+	Prints the content of all registers.
+	Shortcut: pall
 next
 	Executes the next instruction, then pauses.
 	Shortcut: n
