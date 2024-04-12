@@ -22,6 +22,9 @@ help
 print <expr>[@<length>]
 	Prints the content of registers and memory.
 	Shortcut: p
+printall
+	Prints the content of all registers.
+	Shortcut: pall
 next
 	Executes the next instruction, then pauses.
 	Shortcut: n
@@ -70,12 +73,22 @@ In the print command, <addr>#<length> means "length instructions after addr".
 	fmt.Print(help)
 }
 
-func tokensToString(sym []assembler.DebuggerToken) []string {
+func tokensToString(sym []assembler.DebuggerToken, info *machine.ArchitectureInfo) []string {
 	str := make([]string, len(sym))
 
 	for i, tok := range sym {
 		var build strings.Builder
-		build.WriteString(fmt.Sprintf("0x%016x: ", tok.Address))
+		
+		switch info.WordWidth {
+		case 8:
+			build.WriteString(fmt.Sprintf("0x%02x: ", tok.Address))
+		case 16:
+			build.WriteString(fmt.Sprintf("0x%04x: ", tok.Address))
+		case 32:
+			build.WriteString(fmt.Sprintf("0x%08x: ", tok.Address))
+		default:
+			build.WriteString(fmt.Sprintf("0x%016x: ", tok.Address))
+		}
 		if tok.Label != "" {
 			build.WriteString(tok.Label)
 			build.WriteString(": ")
@@ -91,7 +104,7 @@ func tokensToString(sym []assembler.DebuggerToken) []string {
 	return str
 }
 
-func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr string) ([]string, error) {
+func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr string, info *machine.ArchitectureInfo) ([]string, error) {
 	fn, sn, _ := strings.Cut(expr, "#")
 	fn = strings.TrimSpace(fn)
 	sn = strings.TrimSpace(sn)
@@ -102,7 +115,7 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 		var err error
 
 		if sn == "" {
-			return tokensToString(sym), nil
+			return tokensToString(sym, info), nil
 		}
 
 		l, err = strconv.ParseUint(sn, 0, 64)
@@ -142,7 +155,7 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 		l = uint64(len(sym))
 	}
 
-	return tokensToString(sym[i:l]), nil
+	return tokensToString(sym[i:l], info), nil
 }
 
 func getMemoryContentPrint(m machine.Machine, addr string, length string) ([]uint64, error) {
@@ -176,7 +189,7 @@ func getMemoryContentPrint(m machine.Machine, addr string, length string) ([]uin
 	return m64, nil
 }
 
-func getPrintExpr(m machine.Machine, expr string) ([]string, error) {
+func getPrintExpr(m machine.Machine, expr string, info *machine.ArchitectureInfo) ([]string, error) {
 	addr, length, has_at := strings.Cut(expr, "@")
 	addr = strings.TrimSpace(addr)
 	length = strings.TrimSpace(length)
@@ -188,7 +201,17 @@ func getPrintExpr(m machine.Machine, expr string) ([]string, error) {
 		}
 		c, _ := m.GetRegister(reg)
 
-		return []string{fmt.Sprintf("0x%016x", c)}, nil
+		// Not very pretty but (mostly) does the job.
+		switch info.WordWidth {
+		case 8:
+			return []string{fmt.Sprintf("0x%02x", c)}, nil
+		case 16:
+			return []string{fmt.Sprintf("0x%04x", c)}, nil
+		case 32:
+			return []string{fmt.Sprintf("0x%08x", c)}, nil
+		default:
+			return []string{fmt.Sprintf("0x%016x", c)}, nil
+		}
 	}
 
 	arr, err := getMemoryContentPrint(m, addr, length)
@@ -204,7 +227,7 @@ func getPrintExpr(m machine.Machine, expr string) ([]string, error) {
 	return c, nil
 }
 
-func debuggerPrint(m machine.Machine, sym []assembler.DebuggerToken, args []string) {
+func debuggerPrint(m machine.Machine, sym []assembler.DebuggerToken, args []string, info *machine.ArchitectureInfo) {
 	if len(args) < 1 {
 		fmt.Println("print expects one argument: <expr>[@<length>] or [<addr>]#[<length>]")
 		return
@@ -214,7 +237,7 @@ func debuggerPrint(m machine.Machine, sym []assembler.DebuggerToken, args []stri
 	var res []string
 	var err error
 	if strings.IndexRune(expr, '#') >= 0 {
-		res, err = getPrintHashExpr(m, sym, expr)
+		res, err = getPrintHashExpr(m, sym, expr, info)
 		if err != nil {
 			fmt.Printf("%v\n", err)
 		} else {
@@ -223,7 +246,7 @@ func debuggerPrint(m machine.Machine, sym []assembler.DebuggerToken, args []stri
 			}
 		}
 	} else {
-		res, err = getPrintExpr(m, expr)
+		res, err = getPrintExpr(m, expr, info)
 		if err != nil {
 			fmt.Printf("%v\n", err)
 		} else {
@@ -235,6 +258,22 @@ func debuggerPrint(m machine.Machine, sym []assembler.DebuggerToken, args []stri
 				}
 			}
 			fmt.Printf("%s\n", res[len(res)-1])
+		}
+	}
+}
+
+func debuggerPrintAll(m machine.Machine, info *machine.ArchitectureInfo) {
+	for i, r := range info.RegistersNames {
+		v, _ := m.GetRegister(uint64(i))
+		switch info.WordWidth {
+		case 8:
+			fmt.Printf("%8s: 0x%02x\n", r, v)
+		case 16:
+			fmt.Printf("%8s: 0x%04x\n", r, v)
+		case 32:
+			fmt.Printf("%8s: 0x%08x\n", r, v)
+		default:
+			fmt.Printf("%8s: 0x%016x\n", r, v)
 		}
 	}
 }
@@ -260,7 +299,7 @@ func ioCall(m machine.Machine, call *machine.Call, in *bufio.Reader) {
 	}
 }
 
-func debuggerNext(m machine.Machine, sym []assembler.DebuggerToken, in *bufio.Reader) {
+func debuggerNext(m machine.Machine, sym []assembler.DebuggerToken, in *bufio.Reader, info *machine.ArchitectureInfo) {
 	call, err := m.NextInstruction()
 	if err != nil {
 		fmt.Println(fmt.Sprintf("Instruction execution failed: %v", err))
@@ -276,10 +315,10 @@ func debuggerNext(m machine.Machine, sym []assembler.DebuggerToken, in *bufio.Re
 		}
 	}
 
-	debuggerPrint(m, sym, []string{"#3"})
+	debuggerPrint(m, sym, []string{"#3"}, info)
 }
 
-func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoints []uint64, in *bufio.Reader) {
+func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoints []uint64, in *bufio.Reader, info *machine.ArchitectureInfo) {
 	for {
 		call, err := m.NextInstruction()
 		if err != nil {
@@ -291,7 +330,7 @@ func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoi
 		if call != nil {
 			if call.Number == machine.SYS_BREAK {
 				fmt.Printf("Stopped at BREAK call at address 0x%x\n", pc)
-				debuggerPrint(m, sym, []string{"#3"})
+				debuggerPrint(m, sym, []string{"#3"}, info)
 				return
 			} else {
 				ioCall(m, call, in)
@@ -313,22 +352,31 @@ func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoi
 
 		if brk {
 			fmt.Printf("Stopped at breakpoint at address 0x%x\n", pc)
-			debuggerPrint(m, sym, []string{"#3"})
+			debuggerPrint(m, sym, []string{"#3"}, info)
 			return
 		}
 	}
 }
 
-func printBreakpoints(breakpoints []uint64) {
+func printBreakpoints(breakpoints []uint64, info *machine.ArchitectureInfo) {
 	fmt.Println("Breakpoints:")
 	for _, b := range breakpoints {
-		fmt.Printf("0x%016x\n", b)
+		switch info.WordWidth {
+		case 8:
+			fmt.Printf("0x%02x\n", b)
+		case 16:
+			fmt.Printf("0x%04x\n", b)
+		case 32:
+			fmt.Printf("0x%08x\n", b)
+		default:
+			fmt.Printf("0x%016x\n", b)
+		}
 	}
 }
 
-func debuggerBreakpoint(m machine.Machine, sym []assembler.DebuggerToken, breakpoints *[]uint64, args []string) {
+func debuggerBreakpoint(m machine.Machine, sym []assembler.DebuggerToken, breakpoints *[]uint64, args []string, info *machine.ArchitectureInfo) {
 	if len(args) < 1 {
-		printBreakpoints(*breakpoints)
+		printBreakpoints(*breakpoints, info)
 		return
 	}
 
@@ -375,10 +423,10 @@ func debuggerBreakpoint(m machine.Machine, sym []assembler.DebuggerToken, breakp
 	*breakpoints = n_brks
 
 	fmt.Printf("New breakpoint at address 0x%x\n", addr)
-	printBreakpoints(*breakpoints)
+	printBreakpoints(*breakpoints, info)
 }
 
-func debuggerRemove(m machine.Machine, sym []assembler.DebuggerToken, breakpoints *[]uint64, args []string) {
+func debuggerRemove(m machine.Machine, sym []assembler.DebuggerToken, breakpoints *[]uint64, args []string, info *machine.ArchitectureInfo) {
 	if len(args) < 1 {
 		fmt.Println("remove expects a breakpoint to remove: remove <address>")
 		return
@@ -421,7 +469,7 @@ FOUND:
 
 	*breakpoints = n_brks
 
-	printBreakpoints(*breakpoints)
+	printBreakpoints(*breakpoints, info)
 }
 
 func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) {
@@ -590,7 +638,9 @@ func debuggerSet(m machine.Machine, args []string) {
 func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8) {
 	version()
 	fmt.Println("Type 'help' for a list of commands.")
-	fmt.Println("Debugging", m.ArchitetureName())
+	
+	info := m.ArchitectureInfo()
+	fmt.Println("Debugging", info.Name)
 
 	var breakpoints []uint64
 	in := bufio.NewReader(os.Stdin)
@@ -615,15 +665,17 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 			case "help", "h":
 				debuggerHelp()
 			case "print", "p":
-				debuggerPrint(m, sym, wsl[1:])
+				debuggerPrint(m, sym, wsl[1:], &info)
+			case "printall", "pall":
+				debuggerPrintAll(m, &info)
 			case "next", "n":
-				debuggerNext(m, sym, in)
+				debuggerNext(m, sym, in, &info)
 			case "continue", "c":
-				debuggerContinue(m, sym, breakpoints, in)
+				debuggerContinue(m, sym, breakpoints, in, &info)
 			case "break", "b":
-				debuggerBreakpoint(m, sym, &breakpoints, wsl[1:])
+				debuggerBreakpoint(m, sym, &breakpoints, wsl[1:], &info)
 			case "remove", "r":
-				debuggerRemove(m, sym, &breakpoints, wsl[1:])
+				debuggerRemove(m, sym, &breakpoints, wsl[1:], &info)
 			case "dump", "d":
 				debuggerDump(m, wsl[1:], prog)
 			case "rewind", "rew":

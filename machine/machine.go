@@ -3,6 +3,12 @@ package machine
 
 import "github.com/gboncoffee/egg/assembler"
 
+type ArchitectureInfo struct {
+	Name string
+	RegistersNames []string
+	WordWidth uint16
+}
+
 // Interface that machine structs are required to implement to work with EGG.
 //
 // It always use uint64 because if we used variable-lengh []bytes, they would
@@ -50,8 +56,8 @@ type Machine interface {
 	// Self-explanatory. Usually just a "return m.pc" or something like
 	// that.
 	GetCurrentInstructionAddress() uint64
-	// Self-explanatory. Usually just returns a string constant.
-	ArchitetureName() string
+	// Self-explanatory.
+	ArchitectureInfo() ArchitectureInfo
 }
 
 // Syscalls numbers. ISAs with specific calls for BREAK should send a BREAK on them.
