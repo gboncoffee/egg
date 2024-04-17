@@ -920,6 +920,44 @@ func (m *RiscV) GetCurrentInstructionAddress() uint64 {
 	return uint64(m.pc)
 }
 
-func (m *RiscV) ArchitetureName() string {
-	return "RISC-V IM (32 bits)"
+func (m *RiscV) ArchitectureInfo() machine.ArchitectureInfo {
+	var info machine.ArchitectureInfo
+	info.Name = "RISC-V IM (32 bits)"
+	info.WordWidth = 32
+	info.RegistersNames = []string{
+		"zero",
+		"ra",
+		"sp",
+		"gp",
+		"tp",
+		"t0",
+		"t1",
+		"t2",
+		"s0",
+		"s1",
+		"a0",
+		"a1",
+		"a2",
+		"a3",
+		"a4",
+		"a5",
+		"a6",
+		"a7",
+		"s2",
+		"s3",
+		"s4",
+		"s5",
+		"s6",
+		"s7",
+		"s8",
+		"s9",
+		"s10",
+		"s11",
+		"t3",
+		"t4",
+		"t5",
+		"t6",
+	}
+
+	return info
 }
