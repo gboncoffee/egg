@@ -107,7 +107,7 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 
 		l, err = strconv.ParseUint(sn, 0, 64)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Cannot parse %v as number: %v", sn, err))
+			return nil, fmt.Errorf("cannot parse %v as number: %v", sn, err)
 		}
 
 		faddr = m.GetCurrentInstructionAddress()
@@ -115,17 +115,17 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 		var err error
 
 		if sn == "" {
-			return nil, errors.New("Length not supplied")
+			return nil, errors.New("length not supplied")
 		}
 
 		faddr, err = strconv.ParseUint(fn, 0, 64)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Cannot parse %v as address.", fn))
+			return nil, fmt.Errorf("cannot parse %v as address", fn)
 		}
 
 		l, err = strconv.ParseUint(sn, 0, 64)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("%v a number.", sn))
+			return nil, fmt.Errorf("%v a number", sn)
 		}
 	}
 
@@ -134,7 +134,7 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 	}))
 
 	if i == uint64(len(sym)) {
-		return nil, errors.New(fmt.Sprintf("No instruction at address 0x%x", faddr))
+		return nil, fmt.Errorf("no instruction at address 0x%x", faddr)
 	}
 
 	l = l + i
@@ -151,7 +151,7 @@ func getMemoryContentPrint(m machine.Machine, addr string, length string) ([]uin
 	if err != nil {
 		a, err = strconv.ParseUint(addr, 0, 64)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("%v is not a register or address", addr))
+			return nil, fmt.Errorf("%v is not a register or address", addr)
 		}
 	} else {
 		a, _ = m.GetRegister(reg)
@@ -159,12 +159,12 @@ func getMemoryContentPrint(m machine.Machine, addr string, length string) ([]uin
 
 	l, err := strconv.ParseUint(length, 0, 64)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("%v is not a number.", length))
+		return nil, fmt.Errorf("%v is not a number", length)
 	}
 
 	mem, err := m.GetMemoryChunk(a, l)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Cannot get memory content: %v", err))
+		return nil, fmt.Errorf("cannot get memory content: %v", err)
 	}
 
 	// I hope this is somehow "optimized out" to a simple padded copy.
@@ -184,7 +184,7 @@ func getPrintExpr(m machine.Machine, expr string) ([]string, error) {
 	if !has_at {
 		reg, err := m.GetRegisterNumber(addr)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Cannot get register content: %v", err))
+			return nil, fmt.Errorf("cannot get register content: %v", err)
 		}
 		c, _ := m.GetRegister(reg)
 
@@ -193,7 +193,7 @@ func getPrintExpr(m machine.Machine, expr string) ([]string, error) {
 
 	arr, err := getMemoryContentPrint(m, addr, length)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Cannot get memory content: %v", err))
+		return nil, fmt.Errorf("cannot get memory content: %v", err)
 	}
 
 	c := make([]string, len(arr))
@@ -213,7 +213,7 @@ func debuggerPrint(m machine.Machine, sym []assembler.DebuggerToken, args []stri
 	expr := args[0]
 	var res []string
 	var err error
-	if strings.IndexRune(expr, '#') >= 0 {
+	if strings.ContainsRune(expr, '#') {
 		res, err = getPrintHashExpr(m, sym, expr)
 		if err != nil {
 			fmt.Printf("%v\n", err)
@@ -263,7 +263,7 @@ func ioCall(m machine.Machine, call *machine.Call, in *bufio.Reader) {
 func debuggerNext(m machine.Machine, sym []assembler.DebuggerToken, in *bufio.Reader) {
 	call, err := m.NextInstruction()
 	if err != nil {
-		fmt.Println(fmt.Sprintf("Instruction execution failed: %v", err))
+		fmt.Printf("instruction execution failed: %v", err)
 		return
 	}
 
@@ -283,7 +283,7 @@ func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoi
 	for {
 		call, err := m.NextInstruction()
 		if err != nil {
-			fmt.Println(fmt.Sprintf("Instruction execution failed: %v", err))
+			fmt.Printf("Instruction execution failed: %v\n", err)
 			return
 		}
 
@@ -326,7 +326,7 @@ func printBreakpoints(breakpoints []uint64) {
 	}
 }
 
-func debuggerBreakpoint(m machine.Machine, sym []assembler.DebuggerToken, breakpoints *[]uint64, args []string) {
+func debuggerBreakpoint(sym []assembler.DebuggerToken, breakpoints *[]uint64, args []string) {
 	if len(args) < 1 {
 		printBreakpoints(*breakpoints)
 		return
@@ -378,7 +378,7 @@ func debuggerBreakpoint(m machine.Machine, sym []assembler.DebuggerToken, breakp
 	printBreakpoints(*breakpoints)
 }
 
-func debuggerRemove(m machine.Machine, sym []assembler.DebuggerToken, breakpoints *[]uint64, args []string) {
+func debuggerRemove(sym []assembler.DebuggerToken, breakpoints *[]uint64, args []string) {
 	if len(args) < 1 {
 		fmt.Println("remove expects a breakpoint to remove: remove <address>")
 		return
@@ -425,7 +425,7 @@ FOUND:
 }
 
 func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) {
-	if strings.IndexRune(expr, '#') >= 0 {
+	if strings.ContainsRune(expr, '#') {
 		if expr == "#" {
 			return prog, nil
 		}
@@ -436,12 +436,12 @@ func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) 
 
 		of, err := strconv.ParseUint(offset, 0, 64)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("%v is not a number.", offset))
+			return nil, fmt.Errorf("%v is not a number", offset)
 		}
 
 		l, err := strconv.ParseUint(length, 0, 64)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("%v is not a number.", length))
+			return nil, fmt.Errorf("%v is not a number", length)
 		}
 
 		end := of + l
@@ -453,7 +453,7 @@ func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) 
 	} else {
 		addr, length, has_at := strings.Cut(expr, "@")
 		if !has_at {
-			return nil, errors.New(fmt.Sprintf("Cannot parse %v as a dump argument", expr))
+			return nil, fmt.Errorf("cannot parse %v as a dump argument", expr)
 		}
 
 		addr = strings.TrimSpace(addr)
@@ -461,16 +461,16 @@ func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) 
 
 		ad, err := strconv.ParseUint(addr, 0, 64)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("%v is not a number.", addr))
+			return nil, fmt.Errorf("%v is not a number", addr)
 		}
 		l, err := strconv.ParseUint(length, 0, 64)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("%v is not a number.", length))
+			return nil, fmt.Errorf("%v is not a number", length)
 		}
 
 		mem, err := m.GetMemoryChunk(ad, l)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Error getting memory chunk: %v", err))
+			return nil, fmt.Errorf("error getting memory chunk: %v", err)
 		}
 
 		return mem, nil
@@ -524,7 +524,7 @@ func getSetExpr(m machine.Machine, expr string) (uint64, uint64, error) {
 	if !has_at {
 		reg, err := m.GetRegisterNumber(addr)
 		if err != nil {
-			return 0, 0, errors.New(fmt.Sprintf("Cannot get register number: %v", err))
+			return 0, 0, fmt.Errorf("cannot get register number: %v", err)
 		}
 		return reg, 0, nil
 	}
@@ -534,7 +534,7 @@ func getSetExpr(m machine.Machine, expr string) (uint64, uint64, error) {
 	if err != nil {
 		a, err = strconv.ParseUint(addr, 0, 64)
 		if err != nil {
-			return 0, 0, errors.New(fmt.Sprintf("%v is not a register or address", addr))
+			return 0, 0, fmt.Errorf("%v is not a register or address", addr)
 		}
 	} else {
 		a, _ = m.GetRegister(reg)
@@ -542,7 +542,7 @@ func getSetExpr(m machine.Machine, expr string) (uint64, uint64, error) {
 
 	l, err := strconv.ParseUint(length, 0, 64)
 	if err != nil {
-		return 0, 0, errors.New(fmt.Sprintf("%v is not a number.", length))
+		return 0, 0, fmt.Errorf("%v is not a number", length)
 	}
 
 	return a, l, nil
@@ -575,7 +575,7 @@ func debuggerSet(m machine.Machine, args []string) {
 		arr := make([]uint8, length)
 		// I hope this is somehow optimized out.
 		shift := 0
-		for i, _ := range arr {
+		for i := range arr {
 			arr[i] = uint8(value >> shift)
 			shift += 8
 		}
@@ -621,9 +621,9 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 			case "continue", "c":
 				debuggerContinue(m, sym, breakpoints, in)
 			case "break", "b":
-				debuggerBreakpoint(m, sym, &breakpoints, wsl[1:])
+				debuggerBreakpoint(sym, &breakpoints, wsl[1:])
 			case "remove", "r":
-				debuggerRemove(m, sym, &breakpoints, wsl[1:])
+				debuggerRemove(sym, &breakpoints, wsl[1:])
 			case "dump", "d":
 				debuggerDump(m, wsl[1:], prog)
 			case "rewind", "rew":

@@ -24,7 +24,7 @@ func TestRegister(t *testing.T) {
 	if v != 42 || err != nil {
 		t.Fatalf("Error getting register 31: %d, %v", v, err)
 	}
-	v, err = m.GetRegister(32)
+	_, err = m.GetRegister(32)
 	if err == nil {
 		t.Fatalf("No error getting register 32")
 	}

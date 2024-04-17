@@ -125,7 +125,7 @@ func ResolveTokensFixedSize(tokens []Token, size uint64, arg ArgTranslateFunctio
 				var err error
 				av, err = arg(t.Value)
 				if err != nil {
-					return nil, errors.New(fmt.Sprintf("Cannot resolve argument: %v", err))
+					return nil, fmt.Errorf("cannot resolve argument: %v", err)
 				}
 			}
 
@@ -144,7 +144,7 @@ func getHexNumber(r rune) (uint8, error) {
 	} else if 0x61 <= r && r <= 0x66 {
 		return uint8(r - 0x57), nil
 	} else {
-		return 0, errors.New("Malformed hex number")
+		return 0, errors.New("malformed hex number")
 	}
 }
 
