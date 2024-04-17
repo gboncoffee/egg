@@ -28,7 +28,7 @@ func runMachine(m machine.Machine) {
 	for {
 		call, err := m.NextInstruction()
 		if err != nil {
-			log.Println(fmt.Sprintf("Instruction execution failed: %v", err))
+			log.Printf("Instruction execution failed: %v\n", err)
 			return
 		}
 
@@ -103,7 +103,7 @@ func main() {
 		var r mips.Mips
 		m = &r
 	default:
-		log.Println(fmt.Sprintf("Unknown architeture: %v", architeture))
+		log.Printf("Unknown architeture: %v", architeture)
 		listArchs()
 		os.Exit(1)
 	}
@@ -116,7 +116,7 @@ func main() {
 
 	asm, err := readToString(file)
 	if err != nil {
-		log.Println(fmt.Sprintf("Could not read supplied file %v", file))
+		log.Printf("Could not read supplied file %v", file)
 		os.Exit(1)
 	}
 
