@@ -9,15 +9,17 @@ import (
 	"os"
 
 	"github.com/gboncoffee/egg/machine"
-	"github.com/gboncoffee/egg/riscv"
 	"github.com/gboncoffee/egg/mips"
+	"github.com/gboncoffee/egg/riscv"
+	"github.com/gboncoffee/egg/sagui"
 )
 
 // Put new architetures here... (main.go:/switch architeture)
 func listArchs() {
 	fmt.Println(`Currently supported architetures:
 'riscv' - RISC-V IM, 32 bits
-'mips' - Subset of MIPS32 (experimental)`)
+'mips'  - Subset of MIPS32 (experimental)
+'sagui' - Fantasy 8 bit RISC`)
 }
 
 func version() {
@@ -101,6 +103,9 @@ func main() {
 		m = &r
 	case "mips":
 		var r mips.Mips
+		m = &r
+	case "sagui":
+		var r sagui.Sagui
 		m = &r
 	default:
 		log.Printf("Unknown architeture: %v", architeture)
