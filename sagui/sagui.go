@@ -196,6 +196,9 @@ func translateArgs(arg string) (uint64, error) {
 	reg, err := getRegisterNumber(arg)
 	if err != nil {
 		n, err := strconv.ParseInt(arg, 0, 64)
+		if n > 0xf {
+			return 0, fmt.Errorf("immediate bigger than immediate size: %v", arg)
+		}
 		return uint64(n), err
 	}
 	return reg, nil
