@@ -8,8 +8,8 @@ import (
 	"math/bits"
 	"strconv"
 
-	"github.com/gboncoffee/egg/machine"
 	"github.com/gboncoffee/egg/assembler"
+	"github.com/gboncoffee/egg/machine"
 )
 
 const (
@@ -133,7 +133,7 @@ func parseR(i uint32) (uint8, uint8, uint8, uint8, uint8) {
 
 func (m *Mips) execSpecial(rs, rt, rd, shamt, funct uint8) {
 	rsv64, _ := m.GetRegister(uint64(rs))
-	rtv64, _ := m.GetRegister(uint64(rd))
+	rtv64, _ := m.GetRegister(uint64(rt))
 	rsv := int32(rsv64)
 	rtv := int32(rtv64)
 
@@ -241,7 +241,7 @@ func (m *Mips) execSpecial(rs, rt, rd, shamt, funct uint8) {
 	m.SetRegister(uint64(rd), uint64(r))
 }
 
-func (m *Mips) execSpecial2(rs, rt, rd, shamt, funct uint8) {
+func (m *Mips) execSpecial2(rs, rd, funct uint8) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rsv := int32(rsv64)
 
@@ -258,7 +258,7 @@ func (m *Mips) execSpecial2(rs, rt, rd, shamt, funct uint8) {
 	m.SetRegister(uint64(rd), uint64(r))
 }
 
-func (m *Mips) execSpecial3(rs, rt, rd, shamt, funct uint8) {
+func (m *Mips) execSpecial3(rs, rd, shamt, funct uint8) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rsv := int32(rsv64)
 
@@ -291,12 +291,12 @@ func (m *Mips) execRegimm(rs, shamt uint8, imm uint32) {
 	// bltz
 	case 0:
 		if int32(rsv64) < 0 {
-			m.pc = uint32(int32(m.pc) + int32(imm << 2) - 4)
+			m.pc = uint32(int32(m.pc) + int32(imm<<2) - 4)
 		}
 	// bgez
 	case 1:
 		if int32(rsv64) >= 0 {
-			m.pc = uint32(int32(m.pc) + int32(imm << 2) - 4)
+			m.pc = uint32(int32(m.pc) + int32(imm<<2) - 4)
 		}
 	}
 }
@@ -305,7 +305,7 @@ func (m *Mips) executeBeq(rs, rt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
 	if rsv64 == rtv64 {
-		m.pc = uint32(int32(m.pc) + int32(imm << 2) - 4)
+		m.pc = uint32(int32(m.pc) + int32(imm<<2) - 4)
 	}
 }
 
@@ -313,21 +313,21 @@ func (m *Mips) executeBne(rs, rt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
 	if rsv64 != rtv64 {
-		m.pc = uint32(int32(m.pc) + int32(imm << 2) - 4)
+		m.pc = uint32(int32(m.pc) + int32(imm<<2) - 4)
 	}
 }
 
 func (m *Mips) executeBgtz(rs uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	if int32(rsv64) > 0 {
-		m.pc = uint32(int32(m.pc) + int32(imm << 2) - 4)
+		m.pc = uint32(int32(m.pc) + int32(imm<<2) - 4)
 	}
 }
 
 func (m *Mips) executeBlez(rs uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	if int32(rsv64) <= 0 {
-		m.pc = uint32(int32(m.pc) + int32(imm << 2) - 4)
+		m.pc = uint32(int32(m.pc) + int32(imm<<2) - 4)
 	}
 }
 
@@ -380,7 +380,7 @@ func (m *Mips) executeSltiu(rs, rt uint8, imm uint32) {
 }
 
 func (m *Mips) executeLui(rt uint8, imm uint32) {
-	m.SetRegister(uint64(rt), uint64(imm << 16))
+	m.SetRegister(uint64(rt), uint64(imm<<16))
 }
 
 func (m *Mips) executeJ(imm uint32) {
@@ -390,7 +390,7 @@ func (m *Mips) executeJ(imm uint32) {
 }
 
 func (m *Mips) executeJal(imm uint32) {
-	m.SetRegister(31, uint64(m.pc + 4))
+	m.SetRegister(31, uint64(m.pc+4))
 	t := (m.pc + 4) & 0xf0000000
 	t = t | (imm << 2)
 	m.pc = t - 4
@@ -402,9 +402,9 @@ func (m *Mips) executeLb(rs, rt uint8, off uint32) {
 	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
 
 	memb := mem & 0xff
-	sign := memb >> 7
+	sign := uint64(memb >> 7)
 	sign = (^(sign - 1)) << 8
-	r := uint64(memb | sign)
+	r := uint64(memb) | sign
 
 	m.SetRegister(uint64(rt), r)
 }
@@ -435,30 +435,30 @@ func (m *Mips) executeLhu(rs, rt uint8, off uint32) {
 	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
 	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
-	mem2, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 1)
+	mem2, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 1)
 
-	m.SetRegister(uint64(rt), uint64(mem) | (uint64(mem2) << 8))
+	m.SetRegister(uint64(rt), uint64(mem)|(uint64(mem2)<<8))
 }
 
 func (m *Mips) executeLw(rs, rt uint8, off uint32) {
 	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
 	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
-	mem2, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 1)
-	mem3, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 2)
-	mem4, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 3)
+	mem2, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 1)
+	mem3, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 2)
+	mem4, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 3)
 
-	m.SetRegister(uint64(rt), uint64(mem) | (uint64(mem2) << 8) | (uint64(mem3) << 16) | (uint64(mem4) << 24))
+	m.SetRegister(uint64(rt), uint64(mem)|(uint64(mem2)<<8)|(uint64(mem3)<<16)|(uint64(mem4)<<24))
 }
 
 func (m *Mips) executeLwl(rs, rt uint8, off uint32) {
 	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
-	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 2)
-	mem2, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 3)
+	mem, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 2)
+	mem2, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 3)
 
-	m.SetRegister(uint64(rt), ((uint64(mem) | (uint64(mem2) << 8)) << 16) | (rtv64 & 0xffff))
+	m.SetRegister(uint64(rt), ((uint64(mem)|(uint64(mem2)<<8))<<16)|(rtv64&0xffff))
 }
 
 func (m *Mips) executeLwr(rs, rt uint8, off uint32) {
@@ -466,9 +466,9 @@ func (m *Mips) executeLwr(rs, rt uint8, off uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
 	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
-	mem2, _ := m.GetMemory(uint64(int32(rsv64) + offs) + 1)
+	mem2, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 1)
 
-	m.SetRegister(uint64(rt), (uint64(mem) | (uint64(mem2) << 8)) | (rtv64 & 0xffff0000))
+	m.SetRegister(uint64(rt), (uint64(mem)|(uint64(mem2)<<8))|(rtv64&0xffff0000))
 }
 
 func (m *Mips) executeSb(rs, rt uint8, off uint32) {
@@ -476,7 +476,7 @@ func (m *Mips) executeSb(rs, rt uint8, off uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
 
-	m.SetMemory(uint64(int32(rsv64) + offs), uint8(rtv64 & 0xff))
+	m.SetMemory(uint64(int32(rsv64)+offs), uint8(rtv64&0xff))
 }
 
 func (m *Mips) executeSh(rs, rt uint8, off uint32) {
@@ -484,8 +484,8 @@ func (m *Mips) executeSh(rs, rt uint8, off uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
 
-	m.SetMemory(uint64(int32(rsv64) + offs), uint8(rtv64 & 0xff))
-	m.SetMemory(uint64(int32(rsv64) + offs) + 1, uint8((rtv64 & 0xff00) >> 8))
+	m.SetMemory(uint64(int32(rsv64)+offs), uint8(rtv64&0xff))
+	m.SetMemory(uint64(int32(rsv64)+offs)+1, uint8((rtv64&0xff00)>>8))
 }
 
 func (m *Mips) executeSw(rs, rt uint8, off uint32) {
@@ -493,10 +493,10 @@ func (m *Mips) executeSw(rs, rt uint8, off uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
 
-	m.SetMemory(uint64(int32(rsv64) + offs), uint8(rtv64 & 0xff))
-	m.SetMemory(uint64(int32(rsv64) + offs) + 1, uint8((rtv64 & 0xff00) >> 8))
-	m.SetMemory(uint64(int32(rsv64) + offs) + 2, uint8((rtv64 & 0xff0000) >> 16))
-	m.SetMemory(uint64(int32(rsv64) + offs) + 3, uint8((rtv64 & 0xff000000) >> 24))
+	m.SetMemory(uint64(int32(rsv64)+offs), uint8(rtv64&0xff))
+	m.SetMemory(uint64(int32(rsv64)+offs)+1, uint8((rtv64&0xff00)>>8))
+	m.SetMemory(uint64(int32(rsv64)+offs)+2, uint8((rtv64&0xff0000)>>16))
+	m.SetMemory(uint64(int32(rsv64)+offs)+3, uint8((rtv64&0xff000000)>>24))
 }
 
 func (m *Mips) execute(i uint32) (*machine.Call, error) {
@@ -507,14 +507,14 @@ func (m *Mips) execute(i uint32) (*machine.Call, error) {
 		switch funct {
 		case 0b1101:
 			num := machine.SYS_BREAK
-			call := machine.Call{uint64(num), 0, 0}
+			call := machine.Call{Number: uint64(num), Arg1: 0, Arg2: 0}
 			m.pc += 4
 			return &call, nil
 		case 0b1100:
 			num, _ := m.GetRegister(2)
 			a1, _ := m.GetRegister(4)
 			a2, _ := m.GetRegister(5)
-			call := machine.Call{num, a1, a2}
+			call := machine.Call{Number: num, Arg1: a1, Arg2: a2}
 			m.pc += 4
 			return &call, nil
 		default:
@@ -530,11 +530,11 @@ func (m *Mips) execute(i uint32) (*machine.Call, error) {
 		imm := parseJ(i)
 		m.executeJal(imm)
 	case 28:
-		rs, rt, rd, shamt, funct := parseR(i)
-		m.execSpecial2(rs, rt, rd, shamt, funct)
+		rs, _, rd, _, funct := parseR(i)
+		m.execSpecial2(rs, rd, funct)
 	case 31:
-		rs, rt, rd, shamt, funct := parseR(i)
-		m.execSpecial3(rs, rt, rd, shamt, funct)
+		rs, _, rd, shamt, funct := parseR(i)
+		m.execSpecial3(rs, rd, shamt, funct)
 	// beq
 	case 4:
 		rs, rt, imm := parseI(i)
@@ -624,7 +624,7 @@ func (m *Mips) execute(i uint32) (*machine.Call, error) {
 		rs, rt, off := parseI(i)
 		m.executeSw(rs, rt, off)
 	default:
-		return nil, errors.New(fmt.Sprintf("Unknown opcode: %b", opcode))
+		return nil, fmt.Errorf("unknown opcode: %b", opcode)
 	}
 
 	m.pc += 4
@@ -634,7 +634,7 @@ func (m *Mips) execute(i uint32) (*machine.Call, error) {
 
 func (m *Mips) GetRegister(reg uint64) (uint64, error) {
 	if reg >= 34 {
-		return 0, errors.New(fmt.Sprintf("No such register: %d. MIPS-I has only 32 general purpouse registers and two special registers for multiplication and division (HI and LO, 32 and 33).", reg))
+		return 0, fmt.Errorf("no such register: %d. MIPS-I has only 32 general purpouse registers and two special registers for multiplication and division (HI and LO, 32 and 33)", reg)
 	}
 
 	return uint64(m.registers[reg]), nil
@@ -642,7 +642,7 @@ func (m *Mips) GetRegister(reg uint64) (uint64, error) {
 
 func (m *Mips) SetRegister(reg uint64, content uint64) error {
 	if reg >= 34 {
-		return errors.New(fmt.Sprintf("No such register: %d. MIPS-I has only 32 general purpouse registers and two special registers for multiplication and division (HI and LO, 32 and 33).", reg))
+		return fmt.Errorf("no such register: %d. MIPS-I has only 32 general purpouse registers and two special registers for multiplication and division (HI and LO, 32 and 33)", reg)
 	}
 
 	if reg != 0 {
@@ -654,7 +654,7 @@ func (m *Mips) SetRegister(reg uint64, content uint64) error {
 
 func (m *Mips) GetMemory(addr uint64) (uint8, error) {
 	if addr > math.MaxUint32 {
-		return 0, errors.New(fmt.Sprintf("Value %v bigger than maximum 32 bit address %v", addr, math.MaxUint32))
+		return 0, fmt.Errorf("value %v bigger than maximum 32 bit address %v", addr, math.MaxUint32)
 	}
 
 	return m.mem[addr], nil
@@ -662,7 +662,7 @@ func (m *Mips) GetMemory(addr uint64) (uint8, error) {
 
 func (m *Mips) SetMemory(addr uint64, content uint8) error {
 	if addr > math.MaxUint32 {
-		return errors.New(fmt.Sprintf("Value %v bigger than maximum 32 bit address %v", addr, math.MaxUint32))
+		return fmt.Errorf("value %v bigger than maximum 32 bit address %v", addr, math.MaxUint32)
 	}
 
 	m.mem[addr] = content
@@ -673,7 +673,7 @@ func (m *Mips) SetMemory(addr uint64, content uint8) error {
 func (m *Mips) GetMemoryChunk(addr uint64, size uint64) ([]uint8, error) {
 	end := addr + (size - 1)
 	if end > math.MaxUint32 {
-		return nil, errors.New(fmt.Sprintf("End address %v bigger than maximum 32 bit address %v", end, math.MaxUint32))
+		return nil, fmt.Errorf("end address %v bigger than maximum 32 bit address %v", end, math.MaxUint32)
 	}
 
 	return m.mem[addr:(end + 1)], nil
@@ -682,7 +682,7 @@ func (m *Mips) GetMemoryChunk(addr uint64, size uint64) ([]uint8, error) {
 func (m *Mips) SetMemoryChunk(addr uint64, content []uint8) error {
 	end := addr + (uint64(len(content)) - 1)
 	if end > math.MaxUint32 {
-		return errors.New(fmt.Sprintf("End address %v bigger than maximum 32 bit address %v", end, math.MaxUint32))
+		return fmt.Errorf("end address %v bigger than maximum 32 bit address %v", end, math.MaxUint32)
 	}
 
 	for _, b := range content {
@@ -701,7 +701,7 @@ func (m *Mips) LoadProgram(program []uint8) error {
 func (m *Mips) NextInstruction() (*machine.Call, error) {
 	iarr, err := m.GetMemoryChunk(uint64(m.pc), 4)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not load 4 bytes from address at PC: %x", m.pc))
+		return nil, fmt.Errorf("could not load 4 bytes from address at PC: %x", m.pc)
 	}
 
 	i := uint32(iarr[0]) | (uint32(iarr[1]) << 8) | (uint32(iarr[2]) << 16) | (uint32(iarr[3]) << 24)
@@ -734,55 +734,55 @@ func assembleSpecial(t assembler.ResolvedToken) (uint32, error) {
 			rs = t.Args[1]
 			rd = t.Args[0]
 		} else {
-			return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s", t.Value))
+			return 0, fmt.Errorf("wrong number of arguments for instruction %s", t.Value)
 		}
 	case "jr":
 		funct = 8
 		if len(t.Args) != 1 {
-			return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 1 argument.", t.Value))
+			return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 1 argument", t.Value)
 		}
 		rs = t.Args[0]
 	case "mult":
 		if len(t.Args) != 2 {
-			return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+			return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 		}
 		rs = t.Args[0]
 		rt = t.Args[1]
 		funct = 0x18
 	case "div":
 		if len(t.Args) != 2 {
-			return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+			return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 		}
 		rs = t.Args[0]
 		rt = t.Args[1]
 		funct = 0x1a
 	case "mfhi":
 		if len(t.Args) != 1 {
-			return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 argument.", t.Value))
+			return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 argument", t.Value)
 		}
 		rd = t.Args[0]
 		funct = 0x10
 	case "mflo":
 		if len(t.Args) != 1 {
-			return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 argument.", t.Value))
+			return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 argument", t.Value)
 		}
 		rd = t.Args[0]
 		funct = 0x12
 	case "mthi":
 		if len(t.Args) != 1 {
-			return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 argument.", t.Value))
+			return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 argument", t.Value)
 		}
 		rs = t.Args[0]
 		funct = 0x11
 	case "mtlo":
 		if len(t.Args) != 1 {
-			return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 argument.", t.Value))
+			return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 argument", t.Value)
 		}
 		rs = t.Args[0]
 		funct = 0x13
 	default:
 		if len(t.Args) != 3 {
-			return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 3 arguments.", t.Value))
+			return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 3 arguments", t.Value)
 		}
 		rd = t.Args[0]
 		rs = t.Args[1]
@@ -838,14 +838,14 @@ func assembleSpecial(t assembler.ResolvedToken) (uint32, error) {
 	code = code | (uint32(rt) << 16)
 	code = code | (uint32(rd) << 11)
 	code = code | (uint32(shamt) << 6)
-	code = code | uint32(funct & 0x3f)
+	code = code | uint32(funct&0x3f)
 
 	return code, nil
 }
 
 func assembleSpecial2(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 2 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 	rd := t.Args[0]
 	rs := t.Args[1]
@@ -860,14 +860,14 @@ func assembleSpecial2(t assembler.ResolvedToken) (uint32, error) {
 	code := uint32(28 << 26)
 	code = code | (uint32(rs) << 21)
 	code = code | (uint32(rd) << 11)
-	code = code | uint32(funct & 0x3f)
+	code = code | uint32(funct&0x3f)
 
 	return code, nil
 }
 
 func assembleSpecial3(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 2 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 	rd := t.Args[0]
 	rt := t.Args[1]
@@ -890,7 +890,7 @@ func assembleSpecial3(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleRegimm(t assembler.ResolvedToken, addr int) (uint32, error) {
 	if len(t.Args) != 2 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 	rs := t.Args[0]
 
@@ -905,14 +905,14 @@ func assembleRegimm(t assembler.ResolvedToken, addr int) (uint32, error) {
 	code := uint32(1 << 26)
 	code = code | (uint32(rs) << 21)
 	code = code | (uint32(funct) << 16)
-	code = code | uint32(br & 0xffff)
+	code = code | uint32(br&0xffff)
 
 	return code, nil
 }
 
 func assembleAddi(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 
 	rt := t.Args[0] << 16
@@ -923,7 +923,7 @@ func assembleAddi(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleAddiu(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 
 	rt := t.Args[0] << 16
@@ -934,7 +934,7 @@ func assembleAddiu(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleAndi(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 
 	rt := t.Args[0] << 16
@@ -945,7 +945,7 @@ func assembleAndi(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleOri(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 
 	rt := t.Args[0] << 16
@@ -956,7 +956,7 @@ func assembleOri(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleXori(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 
 	rt := t.Args[0] << 16
@@ -967,7 +967,7 @@ func assembleXori(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleSlti(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 
 	rt := t.Args[0] << 16
@@ -978,7 +978,7 @@ func assembleSlti(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleSltiu(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 
 	rt := t.Args[0] << 16
@@ -989,7 +989,7 @@ func assembleSltiu(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleLui(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 2 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 
 	rt := t.Args[0] << 16
@@ -999,7 +999,7 @@ func assembleLui(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleBeq(t assembler.ResolvedToken, addr int) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 	rs := t.Args[0]
 	rt := t.Args[1]
@@ -1009,14 +1009,14 @@ func assembleBeq(t assembler.ResolvedToken, addr int) (uint32, error) {
 	code := uint32(4 << 26)
 	code = code | (uint32(rs) << 21)
 	code = code | (uint32(rt) << 16)
-	code = code | uint32(br & 0xffff)
+	code = code | uint32(br&0xffff)
 
 	return code, nil
 }
 
 func assembleBgtz(t assembler.ResolvedToken, addr int) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 	rs := t.Args[0]
 	rt := t.Args[1]
@@ -1026,14 +1026,14 @@ func assembleBgtz(t assembler.ResolvedToken, addr int) (uint32, error) {
 	code := uint32(7 << 26)
 	code = code | (uint32(rs) << 21)
 	code = code | (uint32(rt) << 16)
-	code = code | uint32(br & 0xffff)
+	code = code | uint32(br&0xffff)
 
 	return code, nil
 }
 
 func assembleBlez(t assembler.ResolvedToken, addr int) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 	rs := t.Args[0]
 	rt := t.Args[1]
@@ -1043,14 +1043,14 @@ func assembleBlez(t assembler.ResolvedToken, addr int) (uint32, error) {
 	code := uint32(6 << 26)
 	code = code | (uint32(rs) << 21)
 	code = code | (uint32(rt) << 16)
-	code = code | uint32(br & 0xffff)
+	code = code | uint32(br&0xffff)
 
 	return code, nil
 }
 
 func assembleBne(t assembler.ResolvedToken, addr int) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 2 arguments.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 2 arguments", t.Value)
 	}
 	rs := t.Args[0]
 	rt := t.Args[1]
@@ -1060,135 +1060,135 @@ func assembleBne(t assembler.ResolvedToken, addr int) (uint32, error) {
 	code := uint32(5 << 26)
 	code = code | (uint32(rs) << 21)
 	code = code | (uint32(rt) << 16)
-	code = code | uint32(br & 0xffff)
+	code = code | uint32(br&0xffff)
 
 	return code, nil
 }
 
 func assembleJ(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 1 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 1 argument.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 1 argument", t.Value)
 	}
 
-	return uint32(2 << 26) | uint32(t.Args[0] & 0xfffffff), nil
+	return uint32(2<<26) | uint32(t.Args[0]&0xfffffff), nil
 }
 
 func assembleLb(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 1 argument.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 1 argument", t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
-	code = code | uint32(t.Args[0] << 16)
-	code = code | uint32(t.Args[1] << 21)
+	code = code | uint32(t.Args[0]<<16)
+	code = code | uint32(t.Args[1]<<21)
 
 	return code | (0x20 << 26), nil
 }
 
 func assembleLbu(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 1 argument.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 1 argument", t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
-	code = code | uint32(t.Args[0] << 16)
-	code = code | uint32(t.Args[1] << 21)
+	code = code | uint32(t.Args[0]<<16)
+	code = code | uint32(t.Args[1]<<21)
 
 	return code | (0x24 << 26), nil
 }
 
 func assembleLh(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 1 argument.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 1 argument", t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
-	code = code | uint32(t.Args[0] << 16)
-	code = code | uint32(t.Args[1] << 21)
+	code = code | uint32(t.Args[0]<<16)
+	code = code | uint32(t.Args[1]<<21)
 
 	return code | (0x21 << 26), nil
 }
 
 func assembleLhu(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 1 argument.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 1 argument", t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
-	code = code | uint32(t.Args[0] << 16)
-	code = code | uint32(t.Args[1] << 21)
+	code = code | uint32(t.Args[0]<<16)
+	code = code | uint32(t.Args[1]<<21)
 
 	return code | (0x25 << 26), nil
 }
 
 func assembleLw(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 1 argument.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 1 argument", t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
-	code = code | uint32(t.Args[0] << 16)
-	code = code | uint32(t.Args[1] << 21)
+	code = code | uint32(t.Args[0]<<16)
+	code = code | uint32(t.Args[1]<<21)
 
 	return code | (0x23 << 26), nil
 }
 
 func assembleLwl(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 1 argument.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 1 argument", t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
-	code = code | uint32(t.Args[0] << 16)
-	code = code | uint32(t.Args[1] << 21)
+	code = code | uint32(t.Args[0]<<16)
+	code = code | uint32(t.Args[1]<<21)
 
 	return code | (0x22 << 26), nil
 }
 
 func assembleLwr(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 1 argument.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 1 argument", t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
-	code = code | uint32(t.Args[0] << 16)
-	code = code | uint32(t.Args[1] << 21)
+	code = code | uint32(t.Args[0]<<16)
+	code = code | uint32(t.Args[1]<<21)
 
 	return code | (0x26 << 26), nil
 }
 
 func assembleSb(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 1 argument.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 1 argument", t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
-	code = code | uint32(t.Args[0] << 16)
-	code = code | uint32(t.Args[1] << 21)
+	code = code | uint32(t.Args[0]<<16)
+	code = code | uint32(t.Args[1]<<21)
 
 	return code | (0x28 << 26), nil
 }
 
 func assembleSh(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 1 argument.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 1 argument", t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
-	code = code | uint32(t.Args[0] << 16)
-	code = code | uint32(t.Args[1] << 21)
+	code = code | uint32(t.Args[0]<<16)
+	code = code | uint32(t.Args[1]<<21)
 
 	return code | (0x29 << 26), nil
 }
 
 func assembleSw(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, errors.New(fmt.Sprintf("Wrong number of arguments for instruction %s. Expected 1 argument.", t.Value))
+		return 0, fmt.Errorf("wrong number of arguments for instruction %s. Expected 1 argument", t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
-	code = code | uint32(t.Args[0] << 16)
-	code = code | uint32(t.Args[1] << 21)
+	code = code | uint32(t.Args[0]<<16)
+	code = code | uint32(t.Args[1]<<21)
 
 	return code | (0x2a << 26), nil
 }
@@ -1257,7 +1257,7 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	case "sw":
 		bin, err = assembleSw(t)
 	default:
-		return errors.New(fmt.Sprintf("Unknown instruction: %v", t.Value))
+		return fmt.Errorf("unknown instruction: %v", t.Value)
 	}
 
 	if err != nil {
@@ -1327,7 +1327,7 @@ func parseRegisterArg(arg string) (uint64, error) {
 
 	n, err := strconv.Atoi(arg[1:])
 	if err != nil {
-		return 0, errors.New(fmt.Sprintf("No such register: %v", arg))
+		return 0, fmt.Errorf("no such register: %v", arg)
 	}
 
 	switch arg[0] {
@@ -1344,12 +1344,12 @@ func parseRegisterArg(arg string) (uint64, error) {
 		return uint64(n), nil
 	}
 
-	return 0, errors.New(fmt.Sprintf("No such register: %v", arg))
+	return 0, fmt.Errorf("no such register: %v", arg)
 }
 
 func translateArgs(arg string) (uint64, error) {
 	if len(arg) < 1 {
-		return 0, errors.New("Empty argument")
+		return 0, errors.New("empty argument")
 	}
 
 	if (0x30 <= arg[0] && arg[0] <= 0x39) || arg[0] == '-' {
@@ -1362,11 +1362,11 @@ func translateArgs(arg string) (uint64, error) {
 
 func (m *Mips) GetRegisterNumber(r string) (uint64, error) {
 	if len(r) < 2 {
-		return 0, errors.New(fmt.Sprintf("No such register: %v", r))
+		return 0, fmt.Errorf("no such register: %v", r)
 	}
 	reg, err := parseRegisterArg(r)
 	if err != nil || reg >= 32 {
-		return 0, errors.New(fmt.Sprintf("No such register: %v", r))
+		return 0, fmt.Errorf("no such register: %v", r)
 	}
 
 	return reg, nil
