@@ -133,7 +133,6 @@ func (m *Sagui) NextInstruction() (*machine.Call, error) {
 	case 0x5:
 		m.SetMemory(rbv, uint8(rav))
 	case 0x6:
-		//fmt.Printf("%b (op %b) (ra %b) (rb %b)\n", instr, op, ra, rb)
 		m.SetRegister(uint64(ra), rbv)
 	case 0x7:
 		m.SetRegister(0, uint64(imm<<4)|(r0v&0xf))

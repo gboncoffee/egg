@@ -65,3 +65,6 @@
 	; Zero r1 to be sure.
 	sub r1, r1
 	ld r1, r0
+
+	; Finally, the "break".
+	movr r0, r0

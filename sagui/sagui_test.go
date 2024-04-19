@@ -3,6 +3,8 @@ package sagui
 import (
 	_ "embed"
 	"testing"
+
+	"github.com/gboncoffee/egg/machine"
 )
 
 //go:embed test.asm
@@ -106,4 +108,9 @@ func TestSagui(t *testing.T) {
 	assertRegister(1, 0, "zeroing r1 to be sure")
 	m.NextInstruction()
 	assertRegister(1, 0xa, "ld")
+
+	call, _ := m.NextInstruction()
+	if call == nil || call.Number != machine.SYS_BREAK {
+		t.Fatalf("Break failed: %v", call)
+	}
 }
