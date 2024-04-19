@@ -13,6 +13,8 @@
 
 [Documentação para MIPS](mips-doc-pt.md)
 
+[Documentação para Sagui](sagui-doc-pt.md)
+
 [Contribuindo, bugs, requisição de features](CONTRIBUINDO.md)
 
 EGG (Emulador Genérico do Gabriel) é um emulador modular de arquiteturas de

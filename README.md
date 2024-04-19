@@ -11,6 +11,8 @@
 
 [Documentation for MIPS](mips-doc.md)
 
+[Documentation for Sagui](sagui-doc.md)
+
 [Contributing, bugs, feature requests](CONTRIBUTING.md)
 
 EGG stands for "Emulador Genérico do Gabriel" ("Gabriel's Generic Emulator", in
