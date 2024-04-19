@@ -107,8 +107,8 @@ func (m *Sagui) NextInstruction() (*machine.Call, error) {
 
 	op := instr >> 4
 	imm := instr & 0xf
-	ra := instr & 0x3
-	rb := (instr >> 2) & 0x3
+	rb := instr & 0x3
+	ra := (instr >> 2) & 0x3
 
 	rav, _ := m.GetRegister(uint64(ra))
 	rbv, _ := m.GetRegister(uint64(rb))
@@ -133,6 +133,7 @@ func (m *Sagui) NextInstruction() (*machine.Call, error) {
 	case 0x5:
 		m.SetMemory(rbv, uint8(rav))
 	case 0x6:
+		//fmt.Printf("%b (op %b) (ra %b) (rb %b)\n", instr, op, ra, rb)
 		m.SetRegister(uint64(ra), rbv)
 	case 0x7:
 		m.SetRegister(0, uint64(imm<<4)|(r0v&0xf))
