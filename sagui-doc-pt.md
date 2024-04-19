@@ -1,4 +1,4 @@
-[Read this document in English](sagui-doc-pt.md)
+[Read this document in English](sagui-doc.md)
 
 # Sagui para o EGG
 
