@@ -23,6 +23,12 @@ type Sagui struct {
 	mem       [math.MaxUint8 + 1]uint8
 }
 
+func signExtend(n uint8) uint8 {
+	sign := n >> 3
+	sign = (^(sign - 1)) << 4
+	return n | sign
+}
+
 func (m *Sagui) SetRegister(reg uint64, value uint64) error {
 	if reg > 3 {
 		return fmt.Errorf("no such register: %v", reg)
@@ -115,12 +121,12 @@ func (m *Sagui) NextInstruction() (*machine.Call, error) {
 		}
 	case 0x1:
 		if r0v == 0 {
-			m.pc = m.pc + uint8(imm) - 1
+			m.pc = m.pc + signExtend(uint8(imm)) - 1
 		}
 	case 0x2:
-		m.pc = uint8(rbv)
+		m.pc = uint8(rbv) - 1
 	case 0x3:
-		m.pc = m.pc + uint8(imm)
+		m.pc = m.pc + signExtend(uint8(imm)) - 1
 	case 0x4:
 		mem, _ := m.GetMemory(rbv)
 		m.SetRegister(uint64(ra), uint64(mem))
