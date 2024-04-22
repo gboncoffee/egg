@@ -299,11 +299,31 @@ func ioCall(m machine.Machine, call *machine.Call, in *bufio.Reader) {
 	}
 }
 
-func debuggerNext(m machine.Machine, sym []assembler.DebuggerToken, in *bufio.Reader, info *machine.ArchitectureInfo) {
+func printRegisters(m machine.Machine, info *machine.ArchitectureInfo, regs []uint64) []uint64 {
+	for i, r := range info.RegistersNames {
+		v, _ := m.GetRegister(uint64(i))
+		if regs[i] != v {
+			switch info.WordWidth {
+			case 8:
+				fmt.Printf("Register %v: changed from 0x%02x to 0x%02x\n", r, regs[i], v)
+			case 16:
+				fmt.Printf("Register %v: changed from 0x%04x to 0x%04x\n", r, regs[i], v)
+			case 32:
+				fmt.Printf("Register %v: changed from 0x%08x to 0x%08x\n", r, regs[i], v)
+			default:
+				fmt.Printf("Register %v: changed from 0x%016x to 0x%016x\n", r, regs[i], v)
+			}
+			regs[i] = v
+		}
+	}
+	return regs
+}
+
+func debuggerNext(m machine.Machine, sym []assembler.DebuggerToken, in *bufio.Reader, info *machine.ArchitectureInfo, regs []uint64) []uint64 {
 	call, err := m.NextInstruction()
 	if err != nil {
 		fmt.Printf("instruction execution failed: %v", err)
-		return
+		return regs
 	}
 
 	pc := m.GetCurrentInstructionAddress()
@@ -316,14 +336,16 @@ func debuggerNext(m machine.Machine, sym []assembler.DebuggerToken, in *bufio.Re
 	}
 
 	debuggerPrint(m, sym, []string{"#3"}, info)
+
+	return printRegisters(m, info, regs)
 }
 
-func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoints []uint64, in *bufio.Reader, info *machine.ArchitectureInfo) {
+func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoints []uint64, in *bufio.Reader, info *machine.ArchitectureInfo, regs []uint64) []uint64 {
 	for {
 		call, err := m.NextInstruction()
 		if err != nil {
 			fmt.Printf("Instruction execution failed: %v\n", err)
-			return
+			return regs
 		}
 
 		pc := m.GetCurrentInstructionAddress()
@@ -331,7 +353,7 @@ func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoi
 			if call.Number == machine.SYS_BREAK {
 				fmt.Printf("Stopped at BREAK call at address 0x%x\n", pc)
 				debuggerPrint(m, sym, []string{"#3"}, info)
-				return
+				return printRegisters(m, info, regs)
 			} else {
 				ioCall(m, call, in)
 			}
@@ -353,7 +375,7 @@ func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoi
 		if brk {
 			fmt.Printf("Stopped at breakpoint at address 0x%x\n", pc)
 			debuggerPrint(m, sym, []string{"#3"}, info)
-			return
+			return printRegisters(m, info, regs)
 		}
 	}
 }
@@ -645,6 +667,11 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 	var breakpoints []uint64
 	in := bufio.NewReader(os.Stdin)
 
+	regs := make([]uint64, len(info.RegistersNames))
+	for i := range info.RegistersNames {
+		regs[i], _ = m.GetRegister(uint64(i))
+	}
+
 	fmt.Print("egg> ")
 	line, err := in.ReadString('\n')
 	for err == nil {
@@ -669,9 +696,9 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 			case "printall", "pall":
 				debuggerPrintAll(m, &info)
 			case "next", "n":
-				debuggerNext(m, sym, in, &info)
+				regs = debuggerNext(m, sym, in, &info, regs)
 			case "continue", "c":
-				debuggerContinue(m, sym, breakpoints, in, &info)
+				regs = debuggerContinue(m, sym, breakpoints, in, &info, regs)
 			case "break", "b":
 				debuggerBreakpoint(sym, &breakpoints, wsl[1:], &info)
 			case "remove", "r":
