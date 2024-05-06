@@ -14,23 +14,25 @@ import (
 	"github.com/gboncoffee/egg/sagui"
 )
 
+const VERSION = "2.2.0"
+
 // Put new architetures here... (main.go:/switch architeture)
 func listArchs() {
-	fmt.Println(`Currently supported architetures:
+	fmt.Println(machine.InterCtx.Get(`Currently supported architetures:
 'riscv' - RISC-V IM, 32 bits
 'mips'  - Subset of MIPS32 (experimental)
-'sagui' - Fantasy 8 bit RISC`)
+'sagui' - Fantasy 8 bit RISC`))
 }
 
 func version() {
-	fmt.Println("EGG - Emulador Genérico do Gabriel - version 2.2.0")
+	fmt.Println(machine.InterCtx.Get("EGG - Emulador Genérico do Gabriel - version ") + VERSION)
 }
 
 func runMachine(m machine.Machine) {
 	for {
 		call, err := m.NextInstruction()
 		if err != nil {
-			log.Printf("Instruction execution failed: %v\n", err)
+			log.Printf(machine.InterCtx.Get("Instruction execution failed: %v\n"), err)
 			return
 		}
 
@@ -72,16 +74,20 @@ func main() {
 	var ver bool
 	var m machine.Machine
 
+	machine.InterCtx.Init()
+	machine.InterCtx.AddLocale("pt_BR", brazilian)
+	machine.InterCtx.AutoSetPreferedLocale()
+
 	log.SetFlags(0)
 
-	flag.StringVar(&architeture, "arch", "riscv", "Select architeture to use.")
-	flag.StringVar(&architeture, "a", "riscv", "Select architeture to use (shorthand).")
-	flag.BoolVar(&list, "list-archs", false, "Lists currently supported architetures and quit.")
-	flag.BoolVar(&list, "l", false, "Lists currently supported architetures (shorthand).")
-	flag.BoolVar(&ver, "version", false, "Show current version and quit.")
-	flag.BoolVar(&ver, "v", false, "Show current version and quit (shorthand).")
-	flag.BoolVar(&debug, "debug", false, "Enter debugger upon startup.")
-	flag.BoolVar(&debug, "d", false, "Enter debugger upon startup (shorthand).")
+	flag.StringVar(&architeture, "arch", "riscv", machine.InterCtx.Get("Select architeture to use."))
+	flag.StringVar(&architeture, "a", "riscv", machine.InterCtx.Get("Select architeture to use (shorthand)."))
+	flag.BoolVar(&list, "list-archs", false, machine.InterCtx.Get("Lists currently supported architetures and quit."))
+	flag.BoolVar(&list, "l", false, machine.InterCtx.Get("Lists currently supported architetures (shorthand)."))
+	flag.BoolVar(&ver, "version", false, machine.InterCtx.Get("Show current version and quit."))
+	flag.BoolVar(&ver, "v", false, machine.InterCtx.Get("Show current version and quit (shorthand)."))
+	flag.BoolVar(&debug, "debug", false, machine.InterCtx.Get("Enter debugger upon startup."))
+	flag.BoolVar(&debug, "d", false, machine.InterCtx.Get("Enter debugger upon startup (shorthand)."))
 
 	flag.Parse()
 
@@ -108,38 +114,38 @@ func main() {
 		var r sagui.Sagui
 		m = &r
 	default:
-		log.Printf("Unknown architeture: %v", architeture)
+		log.Printf(machine.InterCtx.Get("Unknown architeture: %v\n"), architeture)
 		listArchs()
 		os.Exit(1)
 	}
 
 	file := flag.Arg(0)
 	if file == "" {
-		log.Println("No Assembly file supplied.")
+		log.Println(machine.InterCtx.Get("No Assembly file supplied."))
 		os.Exit(1)
 	}
 
 	asm, err := readToString(file)
 	if err != nil {
-		log.Printf("Could not read supplied file %v", file)
+		log.Printf(machine.InterCtx.Get("Could not read supplied file %v\n"), file)
 		os.Exit(1)
 	}
 
 	code, sym, err := m.Assemble(asm)
 	if err != nil {
-		log.Printf("Error assembling file %v: %v\n", file, err)
+		log.Printf(machine.InterCtx.Get("Error assembling file %v: %v\n"), file, err)
 		os.Exit(1)
 	}
 
 	err = m.LoadProgram(code)
 	if err != nil {
-		log.Printf("Error loading assembled program: %v\n", err)
+		log.Printf(machine.InterCtx.Get("Error loading assembled program: %v\n"), err)
 		os.Exit(1)
 	}
 
 	if debug {
 		if sym == nil {
-			log.Println("Debugging is not supported for the selected backend.")
+			log.Println(machine.InterCtx.Get("Debugging is not supported for the selected backend."))
 			os.Exit(1)
 		}
 		// Hello fellow Acme user. Plumb this: debugger.go:/debugMachine

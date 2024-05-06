@@ -14,7 +14,7 @@ import (
 )
 
 func debuggerHelp() {
-	help := `Commands:
+	help := machine.InterCtx.Get(`Commands:
 
 help
 	Shows this help.
@@ -69,7 +69,7 @@ running 'dump # file'.
 
 In the print command, <addr>#<length> means "length instructions after addr".
 #<length> is a shortcut to use with the current instruction address.
-`
+`)
 	fmt.Print(help)
 }
 
@@ -120,7 +120,7 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 
 		l, err = strconv.ParseUint(sn, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf("cannot parse %v as number: %v", sn, err)
+			return nil, fmt.Errorf(machine.InterCtx.Get("cannot parse %v as number: %v"), sn, err)
 		}
 
 		faddr = m.GetCurrentInstructionAddress()
@@ -128,17 +128,17 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 		var err error
 
 		if sn == "" {
-			return nil, errors.New("length not supplied")
+			return nil, errors.New(machine.InterCtx.Get("length not supplied"))
 		}
 
 		faddr, err = strconv.ParseUint(fn, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf("cannot parse %v as address", fn)
+			return nil, fmt.Errorf(machine.InterCtx.Get("cannot parse %v as address"), fn)
 		}
 
 		l, err = strconv.ParseUint(sn, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf("%v a number", sn)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), sn)
 		}
 	}
 
@@ -147,7 +147,7 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 	}))
 
 	if i == uint64(len(sym)) {
-		return nil, fmt.Errorf("no instruction at address 0x%x", faddr)
+		return nil, fmt.Errorf(machine.InterCtx.Get("no instruction at address 0x%x"), faddr)
 	}
 
 	l = l + i
@@ -164,7 +164,7 @@ func getMemoryContentPrint(m machine.Machine, addr string, length string) ([]uin
 	if err != nil {
 		a, err = strconv.ParseUint(addr, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf("%v is not a register or address", addr)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a register or address"), addr)
 		}
 	} else {
 		a, _ = m.GetRegister(reg)
@@ -172,12 +172,12 @@ func getMemoryContentPrint(m machine.Machine, addr string, length string) ([]uin
 
 	l, err := strconv.ParseUint(length, 0, 64)
 	if err != nil {
-		return nil, fmt.Errorf("%v is not a number", length)
+		return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), length)
 	}
 
 	mem, err := m.GetMemoryChunk(a, l)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get memory content: %v", err)
+		return nil, fmt.Errorf(machine.InterCtx.Get("cannot get memory content: %v"), err)
 	}
 
 	// I hope this is somehow "optimized out" to a simple padded copy.
@@ -197,7 +197,7 @@ func getPrintExpr(m machine.Machine, expr string, info *machine.ArchitectureInfo
 	if !has_at {
 		reg, err := m.GetRegisterNumber(addr)
 		if err != nil {
-			return nil, fmt.Errorf("cannot get register content: %v", err)
+			return nil, fmt.Errorf(machine.InterCtx.Get("cannot get register content: %v"), err)
 		}
 		c, _ := m.GetRegister(reg)
 
@@ -216,7 +216,7 @@ func getPrintExpr(m machine.Machine, expr string, info *machine.ArchitectureInfo
 
 	arr, err := getMemoryContentPrint(m, addr, length)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get memory content: %v", err)
+		return nil, fmt.Errorf(machine.InterCtx.Get("cannot get memory content: %v"), err)
 	}
 
 	c := make([]string, len(arr))
@@ -229,7 +229,7 @@ func getPrintExpr(m machine.Machine, expr string, info *machine.ArchitectureInfo
 
 func debuggerPrint(m machine.Machine, sym []assembler.DebuggerToken, args []string, info *machine.ArchitectureInfo) {
 	if len(args) < 1 {
-		fmt.Println("print expects one argument: <expr>[@<length>] or [<addr>]#[<length>]")
+		fmt.Println(machine.InterCtx.Get("print expects one argument: <expr>[@<length>] or [<addr>]#[<length>]"))
 		return
 	}
 
@@ -282,11 +282,11 @@ func ioCall(m machine.Machine, call *machine.Call, in *bufio.Reader) {
 	if call.Number == machine.SYS_READ {
 		addr := call.Arg1
 		size := call.Arg2
-		fmt.Printf("READ call for address 0x%x with %d bytes:\n", addr, size)
+		fmt.Printf(machine.InterCtx.Get("READ call for address 0x%x with %d bytes:\n"), addr, size)
 		buf := make([]byte, size)
 		_, err := in.Read(buf)
 		if err != nil {
-			fmt.Printf("Error reading stdin: %v\n", err)
+			fmt.Printf(machine.InterCtx.Get("Error reading stdin: %v\n"), err)
 			return
 		}
 
@@ -305,13 +305,13 @@ func printRegisters(m machine.Machine, info *machine.ArchitectureInfo, regs []ui
 		if regs[i] != v {
 			switch info.WordWidth {
 			case 8:
-				fmt.Printf("Register %v: changed from 0x%02x to 0x%02x\n", r, regs[i], v)
+				fmt.Printf(machine.InterCtx.Get("Register %v: changed from 0x%02x to 0x%02x\n"), r, regs[i], v)
 			case 16:
-				fmt.Printf("Register %v: changed from 0x%04x to 0x%04x\n", r, regs[i], v)
+				fmt.Printf(machine.InterCtx.Get("Register %v: changed from 0x%04x to 0x%04x\n"), r, regs[i], v)
 			case 32:
-				fmt.Printf("Register %v: changed from 0x%08x to 0x%08x\n", r, regs[i], v)
+				fmt.Printf(machine.InterCtx.Get("Register %v: changed from 0x%08x to 0x%08x\n"), r, regs[i], v)
 			default:
-				fmt.Printf("Register %v: changed from 0x%016x to 0x%016x\n", r, regs[i], v)
+				fmt.Printf(machine.InterCtx.Get("Register %v: changed from 0x%016x to 0x%016x\n"), r, regs[i], v)
 			}
 			regs[i] = v
 		}
@@ -322,14 +322,14 @@ func printRegisters(m machine.Machine, info *machine.ArchitectureInfo, regs []ui
 func debuggerNext(m machine.Machine, sym []assembler.DebuggerToken, in *bufio.Reader, info *machine.ArchitectureInfo, regs []uint64) []uint64 {
 	call, err := m.NextInstruction()
 	if err != nil {
-		fmt.Printf("instruction execution failed: %v", err)
+		fmt.Printf(machine.InterCtx.Get("Instruction execution failed: %v\n"), err)
 		return regs
 	}
 
 	pc := m.GetCurrentInstructionAddress()
 	if call != nil {
 		if call.Number == machine.SYS_BREAK {
-			fmt.Printf("BREAK call while stepping at address 0x%x\n", pc)
+			fmt.Printf(machine.InterCtx.Get("BREAK call while stepping at address 0x%x\n"), pc)
 		} else {
 			ioCall(m, call, in)
 		}
@@ -344,14 +344,14 @@ func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoi
 	for {
 		call, err := m.NextInstruction()
 		if err != nil {
-			fmt.Printf("Instruction execution failed: %v\n", err)
+			fmt.Printf(machine.InterCtx.Get("Instruction execution failed: %v\n"), err)
 			return regs
 		}
 
 		pc := m.GetCurrentInstructionAddress()
 		if call != nil {
 			if call.Number == machine.SYS_BREAK {
-				fmt.Printf("Stopped at BREAK call at address 0x%x\n", pc)
+				fmt.Printf(machine.InterCtx.Get("Stopped at BREAK call at address 0x%x\n"), pc)
 				debuggerPrint(m, sym, []string{"#3"}, info)
 				return printRegisters(m, info, regs)
 			} else {
@@ -373,7 +373,7 @@ func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoi
 		})
 
 		if brk {
-			fmt.Printf("Stopped at breakpoint at address 0x%x\n", pc)
+			fmt.Printf(machine.InterCtx.Get("Stopped at breakpoint at address 0x%x\n"), pc)
 			debuggerPrint(m, sym, []string{"#3"}, info)
 			return printRegisters(m, info, regs)
 		}
@@ -381,7 +381,7 @@ func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoi
 }
 
 func printBreakpoints(breakpoints []uint64, info *machine.ArchitectureInfo) {
-	fmt.Println("Breakpoints:")
+	fmt.Println(machine.InterCtx.Get("Breakpoints:"))
 	for _, b := range breakpoints {
 		switch info.WordWidth {
 		case 8:
@@ -416,7 +416,7 @@ func debuggerBreakpoint(sym []assembler.DebuggerToken, breakpoints *[]uint64, ar
 		var err error
 		addr, err = strconv.ParseUint(args[0], 0, 64)
 		if err != nil {
-			fmt.Printf("%v is not a number.\n", args[0])
+			fmt.Printf(machine.InterCtx.Get("%v is not a number.\n"), args[0])
 			return
 		}
 	}
@@ -428,7 +428,7 @@ func debuggerBreakpoint(sym []assembler.DebuggerToken, breakpoints *[]uint64, ar
 			n_brks[i] = p
 			brk_idx++
 		} else if p == addr {
-			fmt.Println("Breakpoint already exists")
+			fmt.Println(machine.InterCtx.Get("Breakpoint already exists."))
 			return
 		} else {
 			break
@@ -444,13 +444,13 @@ func debuggerBreakpoint(sym []assembler.DebuggerToken, breakpoints *[]uint64, ar
 
 	*breakpoints = n_brks
 
-	fmt.Printf("New breakpoint at address 0x%x\n", addr)
+	fmt.Printf(machine.InterCtx.Get("New breakpoint at address 0x%x\n"), addr)
 	printBreakpoints(*breakpoints, info)
 }
 
 func debuggerRemove(sym []assembler.DebuggerToken, breakpoints *[]uint64, args []string, info *machine.ArchitectureInfo) {
 	if len(args) < 1 {
-		fmt.Println("remove expects a breakpoint to remove: remove <address>")
+		fmt.Println(machine.InterCtx.Get("remove expects a breakpoint to remove: remove <address>"))
 		return
 	}
 
@@ -464,7 +464,7 @@ func debuggerRemove(sym []assembler.DebuggerToken, breakpoints *[]uint64, args [
 			}
 		}
 
-		fmt.Printf("Cannot parse %v as address.\n", args[0])
+		fmt.Printf(machine.InterCtx.Get("Cannot parse %v as address.\n"), args[0])
 		return
 	}
 FIND:
@@ -476,7 +476,7 @@ FIND:
 		}
 	}
 
-	fmt.Printf("No breakpoint at address 0x%x\n", addr)
+	fmt.Printf(machine.InterCtx.Get("No breakpoint at address 0x%x\n"), addr)
 	return
 FOUND:
 	n_brks := make([]uint64, len(*breakpoints)-1)
@@ -506,12 +506,12 @@ func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) 
 
 		of, err := strconv.ParseUint(offset, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf("%v is not a number", offset)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), offset)
 		}
 
 		l, err := strconv.ParseUint(length, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf("%v is not a number", length)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), length)
 		}
 
 		end := of + l
@@ -523,7 +523,7 @@ func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) 
 	} else {
 		addr, length, has_at := strings.Cut(expr, "@")
 		if !has_at {
-			return nil, fmt.Errorf("cannot parse %v as a dump argument", expr)
+			return nil, fmt.Errorf(machine.InterCtx.Get("cannot parse %v as a dump argument"), expr)
 		}
 
 		addr = strings.TrimSpace(addr)
@@ -531,16 +531,16 @@ func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) 
 
 		ad, err := strconv.ParseUint(addr, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf("%v is not a number", addr)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), addr)
 		}
 		l, err := strconv.ParseUint(length, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf("%v is not a number", length)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), length)
 		}
 
 		mem, err := m.GetMemoryChunk(ad, l)
 		if err != nil {
-			return nil, fmt.Errorf("error getting memory chunk: %v", err)
+			return nil, fmt.Errorf(machine.InterCtx.Get("error getting memory chunk: %v"), err)
 		}
 
 		return mem, nil
@@ -549,7 +549,7 @@ func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) 
 
 func debuggerDump(m machine.Machine, args []string, prog []uint8) {
 	if len(args) < 2 {
-		fmt.Println("dump expects two arguments: (<expr>@<length> or [<addr>]#[<length>]) <file>")
+		fmt.Println(machine.InterCtx.Get("dump expects two arguments: (<expr>@<length> or [<addr>]#[<length>]) <file>"))
 		return
 	}
 
@@ -558,19 +558,19 @@ func debuggerDump(m machine.Machine, args []string, prog []uint8) {
 
 	dump, err := getDumpExpr(m, expr, prog)
 	if err != nil {
-		fmt.Printf("Cannot get content to dump: %v\n", err)
+		fmt.Printf(machine.InterCtx.Get("Cannot get content to dump: %v\n"), err)
 		return
 	}
 
 	f, err := os.OpenFile(file, os.O_CREATE | os.O_WRONLY | os.O_TRUNC, 0644)
 	if err != nil {
-		fmt.Printf("Cannot open %s for write: %v\n", file, err)
+		fmt.Printf(machine.InterCtx.Get("Cannot open %s for write: %v\n"), file, err)
 		return
 	}
 
 	_, err = f.Write(dump)
 	if err != nil {
-		fmt.Printf("Error while writing to %s: %v\n", file, err)
+		fmt.Printf(machine.InterCtx.Get("Error while writing to %s: %v\n"), file, err)
 	}
 
 	f.Close()
@@ -579,9 +579,9 @@ func debuggerDump(m machine.Machine, args []string, prog []uint8) {
 func debuggerRewind(m machine.Machine, prog []uint8) {
 	err := m.LoadProgram(prog)
 	if err != nil {
-		fmt.Printf("Error while reloading machine: %v\n", err)
+		fmt.Printf(machine.InterCtx.Get("Error while reloading machine: %v\n"), err)
 	} else {
-		fmt.Printf("Reloaded machine.\n")
+		fmt.Println(machine.InterCtx.Get("Reloaded machine."))
 	}
 }
 
@@ -594,7 +594,7 @@ func getSetExpr(m machine.Machine, expr string) (uint64, uint64, error) {
 	if !has_at {
 		reg, err := m.GetRegisterNumber(addr)
 		if err != nil {
-			return 0, 0, fmt.Errorf("cannot get register number: %v", err)
+			return 0, 0, fmt.Errorf(machine.InterCtx.Get("cannot get register number: %v"), err)
 		}
 		return reg, 0, nil
 	}
@@ -604,7 +604,7 @@ func getSetExpr(m machine.Machine, expr string) (uint64, uint64, error) {
 	if err != nil {
 		a, err = strconv.ParseUint(addr, 0, 64)
 		if err != nil {
-			return 0, 0, fmt.Errorf("%v is not a register or address", addr)
+			return 0, 0, fmt.Errorf(machine.InterCtx.Get("%v is not a register or address"), addr)
 		}
 	} else {
 		a, _ = m.GetRegister(reg)
@@ -612,7 +612,7 @@ func getSetExpr(m machine.Machine, expr string) (uint64, uint64, error) {
 
 	l, err := strconv.ParseUint(length, 0, 64)
 	if err != nil {
-		return 0, 0, fmt.Errorf("%v is not a number", length)
+		return 0, 0, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), length)
 	}
 
 	return a, l, nil
@@ -620,7 +620,7 @@ func getSetExpr(m machine.Machine, expr string) (uint64, uint64, error) {
 
 func debuggerSet(m machine.Machine, args []string) {
 	if len(args) < 2 {
-		fmt.Printf("set expects two arguments: <expr>[@<length>] <value>")
+		fmt.Println(machine.InterCtx.Get("set expects two arguments: <expr>[@<length>] <value>"))
 		return
 	}
 
@@ -632,14 +632,14 @@ func debuggerSet(m machine.Machine, args []string) {
 
 	value, err := strconv.ParseUint(args[1], 0, 64)
 	if err != nil {
-		fmt.Printf("Cannot parse %v as number: %v", args[1], err)
+		fmt.Printf(machine.InterCtx.Get("Cannot parse %v as number: %v"), args[1], err)
 		return
 	}
 
 	if length == 0 {
 		err := m.SetRegister(addr, value)
 		if err != nil {
-			fmt.Printf("Error while changing register content: %v\n", err)
+			fmt.Printf(machine.InterCtx.Get("Error while changing register content: %v\n"), err)
 		}
 	} else {
 		arr := make([]uint8, length)
@@ -652,17 +652,17 @@ func debuggerSet(m machine.Machine, args []string) {
 
 		err := m.SetMemoryChunk(addr, arr)
 		if err != nil {
-			fmt.Printf("Error while changing memory content: %v\n", err)
+			fmt.Printf(machine.InterCtx.Get("Error while changing memory content: %v\n"), err)
 		}
 	}
 }
 
 func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8) {
 	version()
-	fmt.Println("Type 'help' for a list of commands.")
-	
+	fmt.Println(machine.InterCtx.Get("Type 'help' for a list of commands."))
+
 	info := m.ArchitectureInfo()
-	fmt.Println("Debugging", info.Name)
+	fmt.Println(machine.InterCtx.Get("Debugging"), info.Name)
 
 	var breakpoints []uint64
 	in := bufio.NewReader(os.Stdin)
@@ -714,7 +714,7 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 			case "ping":
 				fmt.Println("pong!")
 			default:
-				fmt.Printf("no such command: %v\n", wsl[0])
+				fmt.Printf(machine.InterCtx.Get("No such command: %v\n"), wsl[0])
 			}
 		} else {
 			fmt.Println("")
@@ -726,5 +726,5 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 
 	fmt.Println("")
 EXIT:
-	fmt.Println("bye!")
+	fmt.Println(machine.InterCtx.Get("bye!"))
 }

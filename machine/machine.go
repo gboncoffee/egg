@@ -1,7 +1,10 @@
 // Package egg/machine has the interface and syscall struct used by EGG backends.
 package machine
 
-import "github.com/gboncoffee/egg/assembler"
+import (
+	"github.com/gboncoffee/egg/assembler"
+	"github.com/gboncoffee/intergo"
+)
 
 type ArchitectureInfo struct {
 	Name string
@@ -84,3 +87,6 @@ type Call struct {
 	Arg1 uint64
 	Arg2 uint64
 }
+
+// Internationalization context available for architectures.
+var InterCtx intergo.InterContext
