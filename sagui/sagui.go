@@ -31,7 +31,7 @@ func signExtend(n uint8) uint8 {
 
 func (m *Sagui) SetRegister(reg uint64, value uint64) error {
 	if reg > 3 {
-		return fmt.Errorf("no such register: %v", reg)
+		return fmt.Errorf(machine.InterCtx.Get("no such register: %v"), reg)
 	}
 	m.registers[reg] = uint8(value)
 	return nil
@@ -39,7 +39,7 @@ func (m *Sagui) SetRegister(reg uint64, value uint64) error {
 
 func (m *Sagui) GetRegister(reg uint64) (uint64, error) {
 	if reg > 3 {
-		return 0, fmt.Errorf("no such register: %v", reg)
+		return 0, fmt.Errorf(machine.InterCtx.Get("no such register: %v"), reg)
 	}
 
 	return uint64(m.registers[reg]), nil
@@ -47,14 +47,14 @@ func (m *Sagui) GetRegister(reg uint64) (uint64, error) {
 
 func (m *Sagui) GetMemory(addr uint64) (uint8, error) {
 	if addr > math.MaxUint8 {
-		return 0, fmt.Errorf("value %v is bigger than maximum 8 bit address %v", addr, math.MaxUint8)
+		return 0, fmt.Errorf(machine.InterCtx.Get("value %v is bigger than maximum 8 bit address %v"), addr, math.MaxUint8)
 	}
 	return m.mem[addr], nil
 }
 
 func (m *Sagui) SetMemory(addr uint64, value uint8) error {
 	if addr > math.MaxUint8 {
-		return fmt.Errorf("value %v is bigger than maximum 8 bit address %v", addr, math.MaxUint8)
+		return fmt.Errorf(machine.InterCtx.Get("value %v is bigger than maximum 8 bit address %v"), addr, math.MaxUint8)
 	}
 	m.mem[addr] = value
 	return nil
@@ -63,7 +63,7 @@ func (m *Sagui) SetMemory(addr uint64, value uint8) error {
 func (m *Sagui) GetMemoryChunk(addr uint64, size uint64) ([]uint8, error) {
 	end := addr + (size - 1)
 	if end > math.MaxUint8 {
-		return nil, fmt.Errorf("end address %v bigger than maximum 8 bit address %v", end, math.MaxUint8)
+		return nil, fmt.Errorf(machine.InterCtx.Get("end address %v bigger than maximum 8 bit address %v"), end, math.MaxUint8)
 	}
 	return m.mem[addr:(end + 1)], nil
 }
@@ -71,7 +71,7 @@ func (m *Sagui) GetMemoryChunk(addr uint64, size uint64) ([]uint8, error) {
 func (m *Sagui) SetMemoryChunk(addr uint64, content []uint8) error {
 	end := addr + (uint64(len(content)) - 1)
 	if end > math.MaxUint8 {
-		return fmt.Errorf("end address %v bigger than maximum 8 bit address %v", end, math.MaxUint8)
+		return fmt.Errorf(machine.InterCtx.Get("end address %v bigger than maximum 8 bit address %v"), end, math.MaxUint8)
 	}
 
 	for _, b := range content {
@@ -93,7 +93,7 @@ func (m *Sagui) GetCurrentInstructionAddress() uint64 {
 func (m *Sagui) NextInstruction() (*machine.Call, error) {
 	instr, err := m.GetMemory(m.GetCurrentInstructionAddress())
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch instruction from memory: %v", err)
+		return nil, fmt.Errorf(machine.InterCtx.Get("failed to fetch instruction from memory: %v"), err)
 	}
 
 	if instr == 0x60 {
@@ -187,7 +187,7 @@ func getRegisterNumber(r string) (uint64, error) {
 	case "r3", "3":
 		return 3, nil
 	default:
-		return 0, fmt.Errorf("no such register: %v", r)
+		return 0, fmt.Errorf(machine.InterCtx.Get("no such register: %v"), r)
 	}
 }
 
@@ -197,13 +197,13 @@ func (m *Sagui) GetRegisterNumber(r string) (uint64, error) {
 
 func translateArgs(arg string) (uint64, error) {
 	if len(arg) < 1 {
-		return 0, errors.New("empty argument")
+		return 0, errors.New(machine.InterCtx.Get("empty argument"))
 	}
 	reg, err := getRegisterNumber(arg)
 	if err != nil {
 		n, err := strconv.ParseInt(arg, 0, 64)
 		if n > 0xf {
-			return 0, fmt.Errorf("immediate bigger than immediate size: %v", arg)
+			return 0, fmt.Errorf(machine.InterCtx.Get("immediate bigger than immediate size: %v"), arg)
 		}
 		return uint64(n), err
 	}
@@ -212,7 +212,7 @@ func translateArgs(arg string) (uint64, error) {
 
 func assembleR(t assembler.ResolvedToken) (uint8, error) {
 	if len(t.Args) != 2 {
-		return 0, fmt.Errorf("wrong number of arguments for instruction %v (needs 2)", t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 2 arguments"), t.Value)
 	}
 
 	ra := uint8(t.Args[0]) & 0x3
@@ -250,7 +250,7 @@ func assembleR(t assembler.ResolvedToken) (uint8, error) {
 
 func assembleI(t assembler.ResolvedToken) (uint8, error) {
 	if len(t.Args) != 1 {
-		return 0, fmt.Errorf("wrong number of arguments for instruction %v (needs 1)", t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
 	imm := uint8(t.Args[0]) & 0xf
@@ -273,7 +273,7 @@ func assembleI(t assembler.ResolvedToken) (uint8, error) {
 
 func assembleJr(t assembler.ResolvedToken) (uint8, error) {
 	if len(t.Args) != 1 {
-		return 0, fmt.Errorf("wrong number of arguments for instruction jr (needs 1)")
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), "jr")
 	}
 
 	return 0x20 | uint8(t.Args[0] & 0x3), nil
@@ -293,7 +293,7 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	case "ebreak":
 		bin = 0x60
 	default:
-		return fmt.Errorf("unknown instruction: %v", t.Value)
+		return fmt.Errorf(machine.InterCtx.Get("unknown instruction: %v"), t.Value)
 	}
 
 	if err != nil {

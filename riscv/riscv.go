@@ -436,7 +436,7 @@ func (m *RiscV) execute(i uint32) (*machine.Call, error) {
 
 		return &call, nil
 	default:
-		return nil, fmt.Errorf("unknown opcode: %b", opcode)
+		return nil, fmt.Errorf(machine.InterCtx.Get("unknown opcode: %b"), opcode)
 	}
 
 	return nil, nil
@@ -450,7 +450,7 @@ func (m *RiscV) LoadProgram(program []uint8) error {
 func (m *RiscV) NextInstruction() (*machine.Call, error) {
 	iarr, err := m.GetMemoryChunk(uint64(m.pc), 4)
 	if err != nil {
-		return nil, fmt.Errorf("could not load 4 bytes from address at PC: %x", m.pc)
+		return nil, fmt.Errorf(machine.InterCtx.Get("could not load 4 bytes from address at PC: %x"), m.pc)
 	}
 
 	i := uint32(iarr[0]) | (uint32(iarr[1]) << 8) | (uint32(iarr[2]) << 16) | (uint32(iarr[3]) << 24)
@@ -460,7 +460,7 @@ func (m *RiscV) NextInstruction() (*machine.Call, error) {
 
 func (m *RiscV) GetMemory(addr uint64) (uint8, error) {
 	if addr > math.MaxUint32 {
-		return 0, fmt.Errorf("value %v bigger than maximum 32 bit address %v", addr, math.MaxUint32)
+		return 0, fmt.Errorf(machine.InterCtx.Get("value %v bigger than maximum 32 bit address %v"), addr, math.MaxUint32)
 	}
 
 	return m.mem[addr], nil
@@ -468,7 +468,7 @@ func (m *RiscV) GetMemory(addr uint64) (uint8, error) {
 
 func (m *RiscV) SetMemory(addr uint64, content uint8) error {
 	if addr > math.MaxUint32 {
-		return fmt.Errorf("value %v bigger than maximum 32 bit address %v", addr, math.MaxUint32)
+		return fmt.Errorf(machine.InterCtx.Get("value %v bigger than maximum 32 bit address %v"), addr, math.MaxUint32)
 	}
 
 	m.mem[addr] = content
@@ -479,7 +479,7 @@ func (m *RiscV) SetMemory(addr uint64, content uint8) error {
 func (m *RiscV) GetMemoryChunk(addr uint64, size uint64) ([]uint8, error) {
 	end := addr + (size - 1)
 	if end > math.MaxUint32 {
-		return nil, fmt.Errorf("end address %v bigger than maximum 32 bit address %v", end, math.MaxUint32)
+		return nil, fmt.Errorf(machine.InterCtx.Get("end address %v bigger than maximum 32 bit address %v"), end, math.MaxUint32)
 	}
 
 	return m.mem[addr:(end + 1)], nil
@@ -488,7 +488,7 @@ func (m *RiscV) GetMemoryChunk(addr uint64, size uint64) ([]uint8, error) {
 func (m *RiscV) SetMemoryChunk(addr uint64, content []uint8) error {
 	end := addr + (uint64(len(content)) - 1)
 	if end > math.MaxUint32 {
-		return fmt.Errorf("end address %v bigger than maximum 32 bit address %v", end, math.MaxUint32)
+		return fmt.Errorf(machine.InterCtx.Get("end address %v bigger than maximum 32 bit address %v"), end, math.MaxUint32)
 	}
 
 	for _, b := range content {
@@ -501,7 +501,7 @@ func (m *RiscV) SetMemoryChunk(addr uint64, content []uint8) error {
 
 func (m *RiscV) GetRegister(reg uint64) (uint64, error) {
 	if reg >= 32 {
-		return 0, fmt.Errorf("no such register: %d. RISC-V has only 32 registers", reg)
+		return 0, fmt.Errorf(machine.InterCtx.Get("no such register: %d. RISC-V has only 32 registers"), reg)
 	}
 
 	return uint64(m.registers[reg]), nil
@@ -509,7 +509,7 @@ func (m *RiscV) GetRegister(reg uint64) (uint64, error) {
 
 func (m *RiscV) SetRegister(reg uint64, content uint64) error {
 	if reg >= 32 {
-		return fmt.Errorf("no such register: %d. RISC-V has only 32 registers", reg)
+		return fmt.Errorf(machine.InterCtx.Get("no such register: %d. RISC-V has only 32 registers"), reg)
 	}
 
 	if reg != 0 {
@@ -521,7 +521,7 @@ func (m *RiscV) SetRegister(reg uint64, content uint64) error {
 
 func assembleArithmetic(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf("wrong number of arguments for instruction '%s', expected 3 arguments", t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 3 arguments"), t.Value)
 	}
 
 	code := uint32(0b0110011)
@@ -584,7 +584,7 @@ func assembleArithmetic(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleArithmeticImm(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf("wrong number of arguments for instruction '%s', expected 3 arguments", t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 3 arguments"), t.Value)
 	}
 
 	code := uint32(0b0010011)
@@ -620,7 +620,7 @@ func assembleArithmeticImm(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleLoad(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf("wrong number of arguments for instruction '%s', expected 3 arguments", t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 3 arguments"), t.Value)
 	}
 
 	code := uint32(0b0000011)
@@ -647,7 +647,7 @@ func assembleLoad(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleStore(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf("wrong number of arguments for instruction '%s', expected 3 arguments", t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 3 arguments"), t.Value)
 	}
 
 	code := uint32(0b0100011)
@@ -671,7 +671,7 @@ func assembleStore(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleBranch(t assembler.ResolvedToken, addr int) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf("wrong number of arguments for instruction '%s', expected 3 arguments", t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 3 arguments"), t.Value)
 	}
 
 	t.Args[2] = uint64(int64(signExtend64(uint32(t.Args[2]))) - int64(addr))
@@ -705,7 +705,7 @@ func assembleBranch(t assembler.ResolvedToken, addr int) (uint32, error) {
 
 func assembleJal(t assembler.ResolvedToken, addr int) (uint32, error) {
 	if len(t.Args) != 2 {
-		return 0, fmt.Errorf("wrong number of arguments for instruction '%s', expected 2 arguments", t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 2 arguments"), t.Value)
 	}
 
 	t.Args[1] = uint64(signExtend64(uint32(t.Args[1])) - uint64(addr))
@@ -722,7 +722,7 @@ func assembleJal(t assembler.ResolvedToken, addr int) (uint32, error) {
 
 func assembleJalr(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf("wrong number of arguments for instruction '%s', expected 3 arguments", t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 3 arguments"), t.Value)
 	}
 
 	code := uint32(0b1100111)
@@ -735,7 +735,7 @@ func assembleJalr(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleU(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 2 {
-		return 0, fmt.Errorf("wrong number of arguments for instruction '%s', expected 2 arguments", t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 2 arguments"), t.Value)
 	}
 
 	var code uint32
@@ -752,7 +752,7 @@ func assembleU(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleCall(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 0 {
-		return 0, fmt.Errorf("wrong number of arguments for instruction '%s', expected no argument", t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected no argument"), t.Value)
 	}
 
 	code := uint32(0b1110011)
@@ -787,7 +787,7 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	case "ecall", "ebreak":
 		bin, err = assembleCall(t)
 	default:
-		return fmt.Errorf("unknown instruction: %v", t.Value)
+		return fmt.Errorf(machine.InterCtx.Get("unknown instruction: %v"), t.Value)
 	}
 
 	if err != nil {
@@ -849,7 +849,7 @@ func parseRegisterArg(arg string) (uint64, error) {
 
 	n, err := strconv.Atoi(arg[1:])
 	if err != nil {
-		return 0, fmt.Errorf("no such register: %v", arg)
+		return 0, fmt.Errorf(machine.InterCtx.Get("no such register: %v"), arg)
 	}
 
 	switch arg[0] {
@@ -872,12 +872,12 @@ func parseRegisterArg(arg string) (uint64, error) {
 		return uint64(n), nil
 	}
 
-	return 0, fmt.Errorf("no such register: %v", arg)
+	return 0, fmt.Errorf(machine.InterCtx.Get("no such register: %v"), arg)
 }
 
 func translateArgs(arg string) (uint64, error) {
 	if len(arg) < 1 {
-		return 0, errors.New("empty argument")
+		return 0, errors.New(machine.InterCtx.Get("empty argument"))
 	}
 
 	if (0x30 <= arg[0] && arg[0] <= 0x39) || arg[0] == '-' {
@@ -890,11 +890,11 @@ func translateArgs(arg string) (uint64, error) {
 
 func (m *RiscV) GetRegisterNumber(r string) (uint64, error) {
 	if len(r) < 2 {
-		return 0, fmt.Errorf("no such register: %v", r)
+		return 0, fmt.Errorf(machine.InterCtx.Get("no such register: %v"), r)
 	}
 	reg, err := parseRegisterArg(r)
 	if err != nil || reg >= 32 {
-		return 0, fmt.Errorf("no such register: %v", r)
+		return 0, fmt.Errorf(machine.InterCtx.Get("no such register: %v"), r)
 	}
 
 	return reg, nil
