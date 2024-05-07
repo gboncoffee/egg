@@ -14,7 +14,7 @@ import (
 	"github.com/gboncoffee/egg/sagui"
 )
 
-const VERSION = "2.2.0"
+const VERSION = "2.3.0"
 
 // Put new architetures here... (main.go:/switch architeture)
 func listArchs() {
