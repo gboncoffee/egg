@@ -195,4 +195,34 @@ No comando print, <addr>#tamanho significa "tantas instruções após addr".
 	"Debugging": "Debuggando",
 	"No such command: %v\n": "Comando inexistente: %v\n",
 	"bye!": "até mais!",
+
+	//
+	// riscv.go and others.
+	//
+	"unknown opcode: %b": "opcode desconhecido: %b",
+	"could not load 4 bytes from address at PC: %x": "não foi possível carregar 4 bytes do endereço do PC: %x",
+	"value %v bigger than maximum 32 bit address %v": "valor %v maior que o máximo endereço de 32 bits %v",
+	"end address %v bigger than maximum 32 bit address %v": "endereço final %v maior que o máximo endereço de 32 bits %v",
+	"no such register: %d. RISC-V has only 32 registers": "registrador %d inexistente. RISC-V possui somente 32 registradores",
+	"wrong number of arguments for instruction '%s', expected 3 arguments": "número de argumentos para instrução '%s' errado: 3 argumentos esperados",
+	"wrong number of arguments for instruction '%s', expected 2 arguments": "número de argumentos para instrução '%s' errado: 2 argumentos esperados",
+	"wrong number of arguments for instruction '%s', expected no argument": "número de argumentos para instrução '%s' errado: nenhum argumento esperado",
+	"unknown instruction: %v": "instrução desconhecida: %v",
+	"no such register: %v": "registrador inexistente: %v",
+	"empty argument": "argumento vazio",
+
+	//
+	// mips.go specific.
+	//
+	"no such register: %d. MIPS-I has only 32 general purpouse registers and two special registers for multiplication and division (HI and LO, 32 and 33)": "registrador inexistente: %d. MIPS-I possui somente 32 registradores de propósito geral e dois registradores especiais para multiplicação e divisão (HI e LO, 32 e 33)",
+	// This one is used by sagui also.
+	"wrong number of arguments for instruction '%s', expected 1 argument": "número de argumentos para instrução '%s' errado: 1 argumento esperado",
+
+	//
+	// sagui.go specific.
+	//
+	"value %v is bigger than maximum 8 bit address %v": "valor %v maior que o máximo endereço de 8 bits %v",
+	"end address %v bigger than maximum 8 bit address %v": "endereço final %v maior que o máximo endereço de 8 bits %v",
+	"failed to fetch instruction from memory: %v": "falha lendo a instrução da memória: %v",
+	"immediate bigger than immediate size: %v": "imediato maior que o tamanho do imediato: %v",
 }
