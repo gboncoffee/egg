@@ -1,16 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"bufio"
-	"os"
-	"strings"
-	"strconv"
 	"errors"
+	"fmt"
+	"os"
 	"sort"
+	"strconv"
+	"strings"
+	"unicode"
 
-	"github.com/gboncoffee/egg/machine"
 	"github.com/gboncoffee/egg/assembler"
+	"github.com/gboncoffee/egg/machine"
 )
 
 func debuggerHelp() {
@@ -78,7 +79,7 @@ func tokensToString(sym []assembler.DebuggerToken, info *machine.ArchitectureInf
 
 	for i, tok := range sym {
 		var build strings.Builder
-		
+
 		switch info.WordWidth {
 		case 8:
 			build.WriteString(fmt.Sprintf("0x%02x: ", tok.Address))
@@ -189,7 +190,46 @@ func getMemoryContentPrint(m machine.Machine, addr string, length string) ([]uin
 	return m64, nil
 }
 
-func getPrintExpr(m machine.Machine, expr string, info *machine.ArchitectureInfo) ([]string, error) {
+func byte2ascii(b byte) rune {
+	r := rune(b)
+	if unicode.IsPrint(r) {
+		return r
+	}
+	return '.'
+}
+
+func printMemory(s []uint64) {
+	nLines := len(s) / 8
+	for i := 0; i < nLines; i++ {
+		for j := 0; j < 8; j++ {
+			fmt.Printf("0x%02x ", s[i*8+j])
+		}
+		fmt.Print("  ")
+		for j := 0; j < 8; j++ {
+			fmt.Printf("%c", byte2ascii(byte(s[i*8+j])))
+		}
+		fmt.Println()
+	}
+
+	if len(s)%8 != 0 {
+		i := 0
+		for i < len(s)%8 {
+			fmt.Printf("0x%02x ", s[nLines*8+i])
+			i++
+		}
+		for i < 8 {
+			fmt.Print("     ")
+			i++
+		}
+		fmt.Print("  ")
+		for i := 0; i < len(s)%8; i++ {
+			fmt.Printf("%c", byte2ascii(byte(s[nLines*8+i])))
+		}
+		fmt.Println()
+	}
+}
+
+func printExpr(m machine.Machine, expr string, info *machine.ArchitectureInfo) {
 	addr, length, has_at := strings.Cut(expr, "@")
 	addr = strings.TrimSpace(addr)
 	length = strings.TrimSpace(length)
@@ -197,34 +237,31 @@ func getPrintExpr(m machine.Machine, expr string, info *machine.ArchitectureInfo
 	if !has_at {
 		reg, err := m.GetRegisterNumber(addr)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("cannot get register content: %v"), err)
+			fmt.Printf("%v\n", fmt.Errorf(machine.InterCtx.Get("cannot get register content: %v"), err))
+			return
 		}
 		c, _ := m.GetRegister(reg)
 
 		// Not very pretty but (mostly) does the job.
 		switch info.WordWidth {
 		case 8:
-			return []string{fmt.Sprintf("0x%02x", c)}, nil
+			fmt.Printf("0x%02x", c)
 		case 16:
-			return []string{fmt.Sprintf("0x%04x", c)}, nil
+			fmt.Printf("0x%04x", c)
 		case 32:
-			return []string{fmt.Sprintf("0x%08x", c)}, nil
+			fmt.Printf("0x%08x", c)
 		default:
-			return []string{fmt.Sprintf("0x%016x", c)}, nil
+			fmt.Printf("0x%016x", c)
 		}
 	}
 
 	arr, err := getMemoryContentPrint(m, addr, length)
 	if err != nil {
-		return nil, fmt.Errorf(machine.InterCtx.Get("cannot get memory content: %v"), err)
+		fmt.Printf("%v\n", fmt.Errorf(machine.InterCtx.Get("cannot get memory content: %v"), err))
+		return
 	}
 
-	c := make([]string, len(arr))
-	for i, v := range arr {
-		c[i] = fmt.Sprintf("0x%02x", v)
-	}
-
-	return c, nil
+	printMemory(arr)
 }
 
 func debuggerPrint(m machine.Machine, sym []assembler.DebuggerToken, args []string, info *machine.ArchitectureInfo) {
@@ -246,19 +283,7 @@ func debuggerPrint(m machine.Machine, sym []assembler.DebuggerToken, args []stri
 			}
 		}
 	} else {
-		res, err = getPrintExpr(m, expr, info)
-		if err != nil {
-			fmt.Printf("%v\n", err)
-		} else {
-			for i := 0; i < len(res)-1; i++ {
-				if i % 8 == 7 {
-					fmt.Printf("%s\n", res[i])
-				} else {
-					fmt.Printf("%s ", res[i])
-				}
-			}
-			fmt.Printf("%s\n", res[len(res)-1])
-		}
+		printExpr(m, expr, info)
 	}
 }
 
@@ -562,7 +587,7 @@ func debuggerDump(m machine.Machine, args []string, prog []uint8) {
 		return
 	}
 
-	f, err := os.OpenFile(file, os.O_CREATE | os.O_WRONLY | os.O_TRUNC, 0644)
+	f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Printf(machine.InterCtx.Get("Cannot open %s for write: %v\n"), file, err)
 		return
