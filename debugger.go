@@ -245,14 +245,15 @@ func printExpr(m machine.Machine, expr string, info *machine.ArchitectureInfo) {
 		// Not very pretty but (mostly) does the job.
 		switch info.WordWidth {
 		case 8:
-			fmt.Printf("0x%02x", c)
+			fmt.Printf("0x%02x\n", c)
 		case 16:
-			fmt.Printf("0x%04x", c)
+			fmt.Printf("0x%04x\n", c)
 		case 32:
-			fmt.Printf("0x%08x", c)
+			fmt.Printf("0x%08x\n", c)
 		default:
-			fmt.Printf("0x%016x", c)
+			fmt.Printf("0x%016x\n", c)
 		}
+		return
 	}
 
 	arr, err := getMemoryContentPrint(m, addr, length)
