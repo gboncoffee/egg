@@ -150,6 +150,7 @@ func getHexNumber(r rune) (uint8, error) {
 
 // Parses everything cleanly excepts that any % followed by a two-digit hex
 // number (e.g., %FA) in substituted by it's own value. Use %% for a literal %.
+// Trailing % are also inserted.
 func ParseLiteral(lit string) string {
 	var b strings.Builder
 	i := 0
@@ -157,6 +158,7 @@ func ParseLiteral(lit string) string {
 		if lit[i] == '%' {
 			if i + 1 < len(lit) && lit[i + 1] == '%' {
 				b.WriteRune('%')
+				i += 2
 			} else if i + 2 < len(lit) {
 				b2, err := getHexNumber(rune(lit[i + 1]))
 				if err != nil {
@@ -172,6 +174,9 @@ func ParseLiteral(lit string) string {
 				}
 				b.WriteRune(rune(b1 | (b2 << 4)))
 				i += 3
+			} else {
+				b.WriteRune('%')
+				i++
 			}
 		} else {
 			b.WriteRune(rune(lit[i]))
