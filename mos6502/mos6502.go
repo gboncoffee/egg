@@ -24,6 +24,8 @@
 // ROM, I decided to load the program to exactly the 128 page.
 //
 // The program is loaded at mos6502.TEXT_PAGE (0x8000).
+//
+// System calls are performed via the BRK instruction.
 
 package mos6502
 
@@ -37,25 +39,262 @@ import (
 const STACK_PAGE = 0x100
 const TEXT_PAGE = 0x8000
 
+const CARRY_FLAG = 0b1
+const ZERO_FLAG = 0b10
+const INTERRUPT_DISABLE_FLAG = 0b100
+const DECIMAL_FLAG = 0b1000
+const BREAK_FLAG = 0b10000
+const OVERFLOW_FLAG = 0b100000
+const NEGATIVE_FLAG = 0b1000000
+
 type Mos6502 struct {
 	registers struct {
-		A uint8
-		P uint8
-		S uint8
-		X uint8
-		Y uint8
+		A  uint8
+		P  uint8
+		S  uint8
+		X  uint8
+		Y  uint8
 		PC uint16
 	}
 	mem [math.MaxUint16 + 1]uint8
 }
 
+type AddressMode int
+
+const (
+	Immediate = iota
+	ZeroPage
+	ZeroPageX
+	ZeroPageY
+	Absolute
+	AbsoluteX
+	AbsoluteY
+	IndirectIndexedX
+	IndirectIndexedY
+	IndexedIndirectX
+	IndexedIndirectY
+	Accumulator
+)
+
+func (m *Mos6502) isFlagSet(flag uint8) bool {
+	return (m.registers.P & flag) != 0
+}
+
+func (m *Mos6502) setFlag(flag uint8, value bool) {
+	if value {
+		m.registers.P = m.registers.P | flag
+	} else {
+		m.registers.P = m.registers.P & (^flag)
+	}
+}
+
 // Returns the operation then the addressing mode.
 func parseOpcode(i uint8) (uint8, uint8) {
-	return (i & 0b11100000 >> 3) | (i & 0b11), i & 0b1100
+	return (i & 0b11100000 >> 3) | (i & 0b11), i & 0b11100
+}
+
+func (m *Mos6502) getAddressByAddressMode(mode AddressMode) uint16 {
+	switch mode {
+	case Immediate:
+		addr := m.registers.PC
+		m.registers.PC++
+		return addr
+	case ZeroPage:
+		addr, _ := m.GetMemory(uint64(m.registers.PC))
+		m.registers.PC++
+		return uint16(addr)
+	case ZeroPageX:
+		addr, _ := m.GetMemory(uint64(m.registers.PC))
+		m.registers.PC++
+		return uint16(addr) + uint16(m.registers.X)
+	case ZeroPageY:
+		addr, _ := m.GetMemory(uint64(m.registers.PC))
+		m.registers.PC++
+		return uint16(addr) + uint16(m.registers.Y)
+	case Absolute:
+		addrSlice, _ := m.GetMemoryChunk(uint64(m.registers.PC), 2)
+		addr := uint16(addrSlice[0]) | (uint16(addrSlice[1]) << 8)
+		m.registers.PC += 2
+		return addr
+	case AbsoluteX:
+		addrSlice, _ := m.GetMemoryChunk(uint64(m.registers.PC), 2)
+		addr := uint16(addrSlice[0]) | (uint16(addrSlice[1]) << 8)
+		m.registers.PC += 2
+		return addr + uint16(m.registers.X)
+	case AbsoluteY:
+		addrSlice, _ := m.GetMemoryChunk(uint64(m.registers.PC), 2)
+		addr := uint16(addrSlice[0]) | (uint16(addrSlice[1]) << 8)
+		m.registers.PC += 2
+		return addr + uint16(m.registers.Y)
+	}
+
+	return 0
+}
+
+func (m *Mos6502) getMemoryByAddressMode(mode AddressMode) uint8 {
+	addr := m.getAddressByAddressMode(mode)
+	content, _ := m.GetMemory(uint64(addr))
+	return content
+}
+
+func (m *Mos6502) performSyscall() (*machine.Call, error) {
+	syscall := uint64(m.registers.X)
+	var arg1 uint64
+	var arg2 uint64
+
+	if syscall != machine.SYS_BREAK {
+		memSlice, err := m.GetMemoryChunk(uint64(m.registers.S)|STACK_PAGE, 4)
+		if err != nil {
+			return nil, fmt.Errorf(machine.InterCtx.Get("couldn't get syscall arguments from stack: %v"), err)
+		}
+		arg2 = uint64(memSlice[0]) | (uint64(memSlice[1]) << 8)
+		arg1 = uint64(memSlice[2]) | (uint64(memSlice[3]) << 8)
+	}
+
+	return &machine.Call{
+		Number: syscall,
+		Arg1:   arg1,
+		Arg2:   arg2,
+	}, nil
+}
+
+func getAdcAddressMode(mode uint8) AddressMode {
+	switch mode {
+	case 0b010:
+		return Immediate
+	case 0b001:
+		return ZeroPage
+	case 0b101:
+		return ZeroPageX
+	case 0b011:
+		return Absolute
+	case 0b111:
+		return AbsoluteX
+	case 0b110:
+		return AbsoluteY
+	case 0b000:
+		return IndexedIndirectX
+	case 0b100:
+		return IndirectIndexedY
+	}
+	return 0
+}
+
+func (m *Mos6502) execAdc(addressMode uint8) error {
+	mode := getAdcAddressMode(addressMode)
+	operand := m.getMemoryByAddressMode(mode)
+
+	if m.isFlagSet(CARRY_FLAG) {
+		operand++
+	}
+
+	// Stores old signal for the overflow flag.
+	signal := m.registers.A & 0b10000000
+
+	m.setFlag(CARRY_FLAG, (uint16(m.registers.A)+uint16(operand)) > math.MaxUint8)
+
+	m.registers.A += operand
+	m.setFlag(OVERFLOW_FLAG, m.registers.A&0b10000000 != signal)
+	m.setFlag(NEGATIVE_FLAG, m.registers.A&0b10000000 != 0)
+	m.setFlag(ZERO_FLAG, m.registers.A == 0)
+
+	return nil
+}
+
+func getAndAddressMode(mode uint8) AddressMode {
+	switch mode {
+	case 0b010:
+		return Immediate
+	case 0b001:
+		return ZeroPage
+	case 0b101:
+		return ZeroPageX
+	case 0b011:
+		return Absolute
+	case 0b111:
+		return AbsoluteX
+	case 0b110:
+		return AbsoluteY
+	case 0b000:
+		return IndexedIndirectX
+	case 0b100:
+		return IndirectIndexedY
+	}
+	return 0
+}
+
+func (m *Mos6502) execAnd(addressMode uint8) {
+	mode := getAndAddressMode(addressMode)
+	operand := m.getMemoryByAddressMode(mode)
+
+	m.registers.A = m.registers.A & operand
+	m.setFlag(ZERO_FLAG, m.registers.A != 0)
+	m.setFlag(NEGATIVE_FLAG, m.registers.A&0b10000000 != 0)
+}
+
+func getAslAddressMode(mode uint8) AddressMode {
+	switch mode {
+	case 0b010:
+		return Accumulator
+	case 0b001:
+		return ZeroPage
+	case 0b101:
+		return ZeroPageX
+	case 0b011:
+		return Absolute
+	case 0b111:
+		return AbsoluteX
+	}
+	return 0
+}
+
+func (m *Mos6502) execAsl(addressMode uint8) {
+	mode := getAslAddressMode(addressMode)
+	if mode == Accumulator {
+		m.setFlag(CARRY_FLAG, m.registers.A&0b10000000 != 0)
+		m.registers.A = m.registers.A << 1
+		m.setFlag(ZERO_FLAG, m.registers.A != 0)
+		return
+	}
+
+	addr := m.getAddressByAddressMode(mode)
+	value, _ := m.GetMemory(uint64(addr))
+
+	m.setFlag(CARRY_FLAG, value&0b10000000 != 0)
+	m.SetMemory(uint64(addr), value<<1)
+	m.setFlag(ZERO_FLAG, (value<<1) != 0)
+}
+
+func (m *Mos6502) NextInstruction() (*machine.Call, error) {
+	rawOpcode, _ := m.GetMemory(uint64(m.registers.PC))
+	m.registers.PC++
+
+	switch rawOpcode {
+	// BRK.
+	case 0b00011000:
+		return m.performSyscall()
+	default:
+		opcode, addressMode := parseOpcode(rawOpcode)
+		switch opcode {
+		// ADC
+		case 0b01101:
+			m.execAdc(addressMode)
+			return nil, nil
+		case 0b00101:
+			m.execAnd(addressMode)
+			return nil, nil
+		case 0b00010:
+			m.execAsl(addressMode)
+			return nil, nil
+		}
+	}
+
+	return nil, nil
 }
 
 func (m *Mos6502) LoadProgram(program []uint8) error {
 	m.registers.PC = TEXT_PAGE
+	m.registers.S = 0
 	return m.SetMemoryChunk(TEXT_PAGE, program)
 }
 
