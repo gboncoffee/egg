@@ -93,48 +93,48 @@ func parseOpcode(i uint8) (uint8, uint8) {
 	return (i & 0b11100000 >> 3) | (i & 0b11), i & 0b11100
 }
 
-func (m *Mos6502) getAddressByAddressMode(mode AddressMode) uint16 {
+func signExtend(n uint8) uint16 {
+	sign := n >> 7
+	sign16 := uint16(^(sign - 1)) << 8
+	return uint16(n) | sign16
+}
+
+func (m *Mos6502) getPointerByAddressMode(mode AddressMode) *uint8 {
 	switch mode {
 	case Immediate:
 		addr := m.registers.PC
 		m.registers.PC++
-		return addr
+		return &m.mem[addr]
 	case ZeroPage:
 		addr, _ := m.GetMemory(uint64(m.registers.PC))
 		m.registers.PC++
-		return uint16(addr)
+		return &m.mem[uint16(addr)]
 	case ZeroPageX:
 		addr, _ := m.GetMemory(uint64(m.registers.PC))
 		m.registers.PC++
-		return uint16(addr) + uint16(m.registers.X)
+		return &m.mem[uint16(addr)+uint16(m.registers.X)]
 	case ZeroPageY:
 		addr, _ := m.GetMemory(uint64(m.registers.PC))
 		m.registers.PC++
-		return uint16(addr) + uint16(m.registers.Y)
+		return &m.mem[uint16(addr)+uint16(m.registers.Y)]
 	case Absolute:
 		addrSlice, _ := m.GetMemoryChunk(uint64(m.registers.PC), 2)
 		addr := uint16(addrSlice[0]) | (uint16(addrSlice[1]) << 8)
 		m.registers.PC += 2
-		return addr
+		return &m.mem[addr]
 	case AbsoluteX:
 		addrSlice, _ := m.GetMemoryChunk(uint64(m.registers.PC), 2)
 		addr := uint16(addrSlice[0]) | (uint16(addrSlice[1]) << 8)
 		m.registers.PC += 2
-		return addr + uint16(m.registers.X)
+		return &m.mem[addr+uint16(m.registers.X)]
 	case AbsoluteY:
 		addrSlice, _ := m.GetMemoryChunk(uint64(m.registers.PC), 2)
 		addr := uint16(addrSlice[0]) | (uint16(addrSlice[1]) << 8)
 		m.registers.PC += 2
-		return addr + uint16(m.registers.Y)
+		return &m.mem[addr+uint16(m.registers.Y)]
 	}
 
-	return 0
-}
-
-func (m *Mos6502) getMemoryByAddressMode(mode AddressMode) uint8 {
-	addr := m.getAddressByAddressMode(mode)
-	content, _ := m.GetMemory(uint64(addr))
-	return content
+	return nil
 }
 
 func (m *Mos6502) performSyscall() (*machine.Call, error) {
@@ -182,7 +182,7 @@ func getAdcAddressMode(mode uint8) AddressMode {
 
 func (m *Mos6502) execAdc(addressMode uint8) error {
 	mode := getAdcAddressMode(addressMode)
-	operand := m.getMemoryByAddressMode(mode)
+	operand := *m.getPointerByAddressMode(mode)
 
 	if m.isFlagSet(CARRY_FLAG) {
 		operand++
@@ -225,7 +225,7 @@ func getAndAddressMode(mode uint8) AddressMode {
 
 func (m *Mos6502) execAnd(addressMode uint8) {
 	mode := getAndAddressMode(addressMode)
-	operand := m.getMemoryByAddressMode(mode)
+	operand := *m.getPointerByAddressMode(mode)
 
 	m.registers.A = m.registers.A & operand
 	m.setFlag(ZERO_FLAG, m.registers.A != 0)
@@ -257,12 +257,32 @@ func (m *Mos6502) execAsl(addressMode uint8) {
 		return
 	}
 
-	addr := m.getAddressByAddressMode(mode)
-	value, _ := m.GetMemory(uint64(addr))
+	addr := m.getPointerByAddressMode(mode)
 
-	m.setFlag(CARRY_FLAG, value&0b10000000 != 0)
-	m.SetMemory(uint64(addr), value<<1)
-	m.setFlag(ZERO_FLAG, (value<<1) != 0)
+	m.setFlag(CARRY_FLAG, (*addr)&0b10000000 != 0)
+	*addr = *addr << 1
+	m.setFlag(ZERO_FLAG, (*addr) != 0)
+}
+
+func (m *Mos6502) execBcc() {
+	addr := m.getPointerByAddressMode(Immediate)
+	if !m.isFlagSet(CARRY_FLAG) {
+		m.registers.PC = uint16(int16(signExtend(*addr)) + int16(m.registers.PC))
+	}
+}
+
+func (m *Mos6502) execBcs() {
+	addr := m.getPointerByAddressMode(Immediate)
+	if m.isFlagSet(CARRY_FLAG) {
+		m.registers.PC = uint16(int16(signExtend(*addr)) + int16(m.registers.PC))
+	}
+}
+
+func (m *Mos6502) execBeq() {
+	addr := m.getPointerByAddressMode(Immediate)
+	if m.isFlagSet(ZERO_FLAG) {
+		m.registers.PC = uint16(int16(signExtend(*addr)) + int16(m.registers.PC))
+	}
 }
 
 func (m *Mos6502) NextInstruction() (*machine.Call, error) {
@@ -270,13 +290,20 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	m.registers.PC++
 
 	switch rawOpcode {
-	// BRK.
 	case 0b00011000:
 		return m.performSyscall()
+	case 0b10010000:
+		m.execBcc()
+		return nil, nil
+	case 0b10110000:
+		m.execBcs()
+		return nil, nil
+	case 0b11110000:
+		m.execBeq()
+		return nil, nil
 	default:
 		opcode, addressMode := parseOpcode(rawOpcode)
 		switch opcode {
-		// ADC
 		case 0b01101:
 			m.execAdc(addressMode)
 			return nil, nil
