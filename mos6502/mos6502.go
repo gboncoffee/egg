@@ -264,6 +264,24 @@ func (m *Mos6502) execAsl(addressMode uint8) {
 	m.setFlag(ZERO_FLAG, (*addr) != 0)
 }
 
+func (m *Mos6502) execBit(addressMode uint8) {
+	var content uint8
+	if addressMode == 0b001 {
+		content = *m.getPointerByAddressMode(ZeroPage)
+	} else {
+		content = *m.getPointerByAddressMode(Absolute)
+	}
+
+	res := int8(content & m.registers.A)
+	m.setFlag(NEGATIVE_FLAG, res < 0)
+	m.setFlag(OVERFLOW_FLAG, res & 0b01000000 != 0)
+	m.setFlag(ZERO_FLAG, res == 0)
+}
+
+//
+// Branches
+//
+
 func (m *Mos6502) execBcc() {
 	addr := m.getPointerByAddressMode(Immediate)
 	if !m.isFlagSet(CARRY_FLAG) {
@@ -278,9 +296,16 @@ func (m *Mos6502) execBcs() {
 	}
 }
 
-func (m *Mos6502) execBeq() {
+func (m *Mos6502) execBranchOnFlag(flag uint8) {
 	addr := m.getPointerByAddressMode(Immediate)
-	if m.isFlagSet(ZERO_FLAG) {
+	if m.isFlagSet(flag) {
+		m.registers.PC = uint16(int16(signExtend(*addr)) + int16(m.registers.PC))
+	}
+}
+
+func (m *Mos6502) execBranchOnNotFlag(flag uint8) {
+	addr := m.getPointerByAddressMode(Immediate)
+	if !m.isFlagSet(flag) {
 		m.registers.PC = uint16(int16(signExtend(*addr)) + int16(m.registers.PC))
 	}
 }
@@ -290,29 +315,50 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	m.registers.PC++
 
 	switch rawOpcode {
+	// brk
 	case 0b00011000:
 		return m.performSyscall()
+	//
+	// Branches.
+	//
 	case 0b10010000:
 		m.execBcc()
-		return nil, nil
 	case 0b10110000:
 		m.execBcs()
-		return nil, nil
+	// beq
 	case 0b11110000:
-		m.execBeq()
-		return nil, nil
+		m.execBranchOnFlag(ZERO_FLAG)
+	// bmi
+	case 0b00110000:
+		m.execBranchOnFlag(NEGATIVE_FLAG)
+	// bvs
+	case 0b01110000:
+		m.execBranchOnFlag(CARRY_FLAG)
+	// bne
+	case 0b11010000:
+		m.execBranchOnNotFlag(ZERO_FLAG)
+	// bpl
+	case 0b00010000:
+		m.execBranchOnNotFlag(NEGATIVE_FLAG)
+	// bvc
+	case 0b0101000:
+		m.execBranchOnNotFlag(OVERFLOW_FLAG)
+	//
+	// Other instructions without address mode.
+	//
+	// clc
+	// TODO: find out which one is 0x18, brk or clc
 	default:
 		opcode, addressMode := parseOpcode(rawOpcode)
 		switch opcode {
 		case 0b01101:
 			m.execAdc(addressMode)
-			return nil, nil
 		case 0b00101:
 			m.execAnd(addressMode)
-			return nil, nil
 		case 0b00010:
 			m.execAsl(addressMode)
-			return nil, nil
+		case 0b00100:
+			m.execBit(addressMode)
 		}
 	}
 
