@@ -278,6 +278,85 @@ func (m *Mos6502) execBit(addressMode uint8) {
 	m.setFlag(ZERO_FLAG, res == 0)
 }
 
+func (m *Mos6502) execCmp(addressMode uint8) {
+	var content uint8
+	switch addressMode {
+	case 0b010:
+		content = *m.getPointerByAddressMode(Immediate)
+	case 0b001:
+		content = *m.getPointerByAddressMode(ZeroPage)
+	case 0b101:
+		content = *m.getPointerByAddressMode(ZeroPageX)
+	case 0b011:
+		content = *m.getPointerByAddressMode(Absolute)
+	case 0b111:
+		content = *m.getPointerByAddressMode(AbsoluteX)
+	case 0b110:
+		content = *m.getPointerByAddressMode(AbsoluteY)
+	case 0b000:
+		content = *m.getPointerByAddressMode(IndirectIndexedX)
+	case 0b100:
+		content = *m.getPointerByAddressMode(IndexedIndirectY)
+	}
+
+	result := int8(content) - int8(m.registers.A)
+	m.setFlag(CARRY_FLAG, result > 0)
+	m.setFlag(NEGATIVE_FLAG, result < 0)
+	m.setFlag(ZERO_FLAG, result == 0)
+}
+
+func (m *Mos6502) execCpx(addressMode uint8) {
+	var content uint8
+	switch addressMode {
+	case 0b000:
+		content = *m.getPointerByAddressMode(Immediate)
+	case 0b001:
+		content = *m.getPointerByAddressMode(ZeroPage)
+	case 0b011:
+		content = *m.getPointerByAddressMode(Absolute)
+	}
+
+	result := int8(content) - int8(m.registers.X)
+	m.setFlag(CARRY_FLAG, result > 0)
+	m.setFlag(NEGATIVE_FLAG, result < 0)
+	m.setFlag(ZERO_FLAG, result == 0)
+}
+
+func (m *Mos6502) execCpy(addressMode uint8) {
+	var content uint8
+	switch addressMode {
+	case 0b000:
+		content = *m.getPointerByAddressMode(Immediate)
+	case 0b001:
+		content = *m.getPointerByAddressMode(ZeroPage)
+	case 0b011:
+		content = *m.getPointerByAddressMode(Absolute)
+	}
+
+	result := int8(content) - int8(m.registers.Y)
+	m.setFlag(CARRY_FLAG, result > 0)
+	m.setFlag(NEGATIVE_FLAG, result < 0)
+	m.setFlag(ZERO_FLAG, result == 0)
+}
+
+func (m *Mos6502) execDec(addressMode uint8) {
+	var content *uint8
+	switch addressMode {
+	case 0b001:
+		content = m.getPointerByAddressMode(ZeroPage)
+	case 0b101:
+		content = m.getPointerByAddressMode(ZeroPageX)
+	case 0b011:
+		content = m.getPointerByAddressMode(Absolute)
+	case 0b111:
+		content = m.getPointerByAddressMode(AbsoluteX)
+	}
+
+	*content -= 1
+	m.setFlag(NEGATIVE_FLAG, *content & 0b10000000 != 0)
+	m.setFlag(ZERO_FLAG, *content == 0)
+}
+
 //
 // Branches
 //
@@ -316,7 +395,7 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 
 	switch rawOpcode {
 	// brk
-	case 0b00011000:
+	case 0:
 		return m.performSyscall()
 	//
 	// Branches.
@@ -344,10 +423,33 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	case 0b0101000:
 		m.execBranchOnNotFlag(OVERFLOW_FLAG)
 	//
-	// Other instructions without address mode.
+	// Clears.
 	//
 	// clc
-	// TODO: find out which one is 0x18, brk or clc
+	case 0b00011000:
+		m.setFlag(CARRY_FLAG, false)
+	// cld
+	case 0b11011000:
+		m.setFlag(DECIMAL_FLAG, false)
+	// cli
+	case 0b01011000:
+		m.setFlag(INTERRUPT_DISABLE_FLAG, false)
+	// clv
+	case 0b10111000:
+		m.setFlag(OVERFLOW_FLAG, false)
+	//
+	// Others.
+	//
+	// dex
+	case 0b11001010:
+		m.registers.X -= 1
+		m.setFlag(NEGATIVE_FLAG, m.registers.X & 0b10000000 != 0)
+		m.setFlag(ZERO_FLAG, m.registers.X == 0)
+	// dey
+	case 0b10001000:
+		m.registers.Y -= 1
+		m.setFlag(NEGATIVE_FLAG, m.registers.Y & 0b10000000 != 0)
+		m.setFlag(ZERO_FLAG, m.registers.Y == 0)
 	default:
 		opcode, addressMode := parseOpcode(rawOpcode)
 		switch opcode {
@@ -359,6 +461,14 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 			m.execAsl(addressMode)
 		case 0b00100:
 			m.execBit(addressMode)
+		case 0b11001:
+			m.execCmp(addressMode)
+		case 0b11100:
+			m.execCpx(addressMode)
+		case 0b11000:
+			m.execCpy(addressMode)
+		case 0b11010:
+			m.execDec(addressMode)
 		}
 	}
 
