@@ -357,6 +357,50 @@ func (m *Mos6502) execDec(addressMode uint8) {
 	m.setFlag(ZERO_FLAG, *content == 0)
 }
 
+func (m *Mos6502) execEor(addressMode uint8) {
+	var content uint8
+	switch addressMode {
+	case 0b010:
+		content = *m.getPointerByAddressMode(Immediate)
+	case 0b001:
+		content = *m.getPointerByAddressMode(ZeroPage)
+	case 0b101:
+		content = *m.getPointerByAddressMode(ZeroPageX)
+	case 0b011:
+		content = *m.getPointerByAddressMode(Absolute)
+	case 0b111:
+		content = *m.getPointerByAddressMode(AbsoluteX)
+	case 0b110:
+		content = *m.getPointerByAddressMode(AbsoluteY)
+	case 0b000:
+		content = *m.getPointerByAddressMode(IndirectIndexedX)
+	case 0b100:
+		content = *m.getPointerByAddressMode(IndexedIndirectY)
+	}
+
+	m.registers.A ^= content
+	m.setFlag(NEGATIVE_FLAG, m.registers.A & 0b1000000 != 0)
+	m.setFlag(ZERO_FLAG, m.registers.A == 0)
+}
+
+func (m *Mos6502) execInc(addressMode uint8) {
+	var content *uint8
+	switch addressMode {
+	case 0b001:
+		content = m.getPointerByAddressMode(ZeroPage)
+	case 0b101:
+		content = m.getPointerByAddressMode(ZeroPageX)
+	case 0b011:
+		content = m.getPointerByAddressMode(Absolute)
+	case 0b111:
+		content = m.getPointerByAddressMode(AbsoluteX)
+	}
+
+	*content = *content + 1
+	m.setFlag(NEGATIVE_FLAG, *content & 0b1000000 != 0)
+	m.setFlag(ZERO_FLAG, *content == 0)
+}
+
 //
 // Branches
 //
@@ -442,15 +486,25 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	//
 	// dex
 	case 0b11001010:
-		m.registers.X -= 1
+		m.registers.X--
 		m.setFlag(NEGATIVE_FLAG, m.registers.X & 0b10000000 != 0)
 		m.setFlag(ZERO_FLAG, m.registers.X == 0)
 	// dey
 	case 0b10001000:
-		m.registers.Y -= 1
+		m.registers.Y--
 		m.setFlag(NEGATIVE_FLAG, m.registers.Y & 0b10000000 != 0)
 		m.setFlag(ZERO_FLAG, m.registers.Y == 0)
-	default:
+	// inx
+	case 0b11101000:
+		m.registers.X++
+		m.setFlag(NEGATIVE_FLAG, m.registers.X & 0b10000000 != 0)
+		m.setFlag(ZERO_FLAG, m.registers.X == 0)
+	// iny
+	case 0b11001000:
+		m.registers.Y++
+		m.setFlag(NEGATIVE_FLAG, m.registers.Y & 0b10000000 != 0)
+		m.setFlag(ZERO_FLAG, m.registers.Y == 0)
+default:
 		opcode, addressMode := parseOpcode(rawOpcode)
 		switch opcode {
 		case 0b01101:
@@ -469,6 +523,10 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 			m.execCpy(addressMode)
 		case 0b11010:
 			m.execDec(addressMode)
+		case 0b01001:
+			m.execEor(addressMode)
+		case 0b11110:
+			m.execInc(addressMode)
 		}
 	}
 
