@@ -32,6 +32,7 @@ package mos6502
 import (
 	"fmt"
 	"math"
+	"unsafe"
 
 	"github.com/gboncoffee/egg/machine"
 )
@@ -274,7 +275,7 @@ func (m *Mos6502) execBit(addressMode uint8) {
 
 	res := int8(content & m.registers.A)
 	m.setFlag(NEGATIVE_FLAG, res < 0)
-	m.setFlag(OVERFLOW_FLAG, res & 0b01000000 != 0)
+	m.setFlag(OVERFLOW_FLAG, res&0b01000000 != 0)
 	m.setFlag(ZERO_FLAG, res == 0)
 }
 
@@ -353,7 +354,7 @@ func (m *Mos6502) execDec(addressMode uint8) {
 	}
 
 	*content -= 1
-	m.setFlag(NEGATIVE_FLAG, *content & 0b10000000 != 0)
+	m.setFlag(NEGATIVE_FLAG, *content&0b10000000 != 0)
 	m.setFlag(ZERO_FLAG, *content == 0)
 }
 
@@ -379,7 +380,7 @@ func (m *Mos6502) execEor(addressMode uint8) {
 	}
 
 	m.registers.A ^= content
-	m.setFlag(NEGATIVE_FLAG, m.registers.A & 0b1000000 != 0)
+	m.setFlag(NEGATIVE_FLAG, m.registers.A&0b1000000 != 0)
 	m.setFlag(ZERO_FLAG, m.registers.A == 0)
 }
 
@@ -397,27 +398,13 @@ func (m *Mos6502) execInc(addressMode uint8) {
 	}
 
 	*content = *content + 1
-	m.setFlag(NEGATIVE_FLAG, *content & 0b1000000 != 0)
+	m.setFlag(NEGATIVE_FLAG, *content&0b1000000 != 0)
 	m.setFlag(ZERO_FLAG, *content == 0)
 }
 
 //
-// Branches
+// Branches and jumps.
 //
-
-func (m *Mos6502) execBcc() {
-	addr := m.getPointerByAddressMode(Immediate)
-	if !m.isFlagSet(CARRY_FLAG) {
-		m.registers.PC = uint16(int16(signExtend(*addr)) + int16(m.registers.PC))
-	}
-}
-
-func (m *Mos6502) execBcs() {
-	addr := m.getPointerByAddressMode(Immediate)
-	if m.isFlagSet(CARRY_FLAG) {
-		m.registers.PC = uint16(int16(signExtend(*addr)) + int16(m.registers.PC))
-	}
-}
 
 func (m *Mos6502) execBranchOnFlag(flag uint8) {
 	addr := m.getPointerByAddressMode(Immediate)
@@ -433,6 +420,24 @@ func (m *Mos6502) execBranchOnNotFlag(flag uint8) {
 	}
 }
 
+func (m *Mos6502) execJmpAbsolute() {
+	addr := m.getPointerByAddressMode(Absolute)
+
+	// Unsafe magic to convert the address to an index.
+	// Works because Mos6502.mem is an array of bytes (uint8) so we don't have
+	// to call sizeof().
+	jmpLoc := uintptr(unsafe.Pointer(addr))
+	memBase := uintptr(unsafe.Pointer(&m.mem[0]))
+	m.registers.PC = uint16(jmpLoc - memBase)
+}
+
+func (m *Mos6502) execJmpIndirect() {
+	addr := m.getPointerByAddressMode(Absolute)
+
+	// Unsafe magic to read two bytes and jump to them.
+	m.registers.PC = *(*uint16)(unsafe.Pointer(addr))
+}
+
 func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	rawOpcode, _ := m.GetMemory(uint64(m.registers.PC))
 	m.registers.PC++
@@ -442,12 +447,14 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	case 0:
 		return m.performSyscall()
 	//
-	// Branches.
+	// Branches and jumps
 	//
+	// bcc
 	case 0b10010000:
-		m.execBcc()
+		m.execBranchOnNotFlag(CARRY_FLAG)
+	// bcs
 	case 0b10110000:
-		m.execBcs()
+		m.execBranchOnFlag(CARRY_FLAG)
 	// beq
 	case 0b11110000:
 		m.execBranchOnFlag(ZERO_FLAG)
@@ -456,7 +463,7 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 		m.execBranchOnFlag(NEGATIVE_FLAG)
 	// bvs
 	case 0b01110000:
-		m.execBranchOnFlag(CARRY_FLAG)
+		m.execBranchOnFlag(OVERFLOW_FLAG)
 	// bne
 	case 0b11010000:
 		m.execBranchOnNotFlag(ZERO_FLAG)
@@ -466,6 +473,10 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	// bvc
 	case 0b0101000:
 		m.execBranchOnNotFlag(OVERFLOW_FLAG)
+	case 0b01001100:
+		m.execJmpAbsolute()
+	case 0b01101100:
+		m.execJmpIndirect()
 	//
 	// Clears.
 	//
@@ -487,24 +498,24 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	// dex
 	case 0b11001010:
 		m.registers.X--
-		m.setFlag(NEGATIVE_FLAG, m.registers.X & 0b10000000 != 0)
+		m.setFlag(NEGATIVE_FLAG, m.registers.X&0b10000000 != 0)
 		m.setFlag(ZERO_FLAG, m.registers.X == 0)
 	// dey
 	case 0b10001000:
 		m.registers.Y--
-		m.setFlag(NEGATIVE_FLAG, m.registers.Y & 0b10000000 != 0)
+		m.setFlag(NEGATIVE_FLAG, m.registers.Y&0b10000000 != 0)
 		m.setFlag(ZERO_FLAG, m.registers.Y == 0)
 	// inx
 	case 0b11101000:
 		m.registers.X++
-		m.setFlag(NEGATIVE_FLAG, m.registers.X & 0b10000000 != 0)
+		m.setFlag(NEGATIVE_FLAG, m.registers.X&0b10000000 != 0)
 		m.setFlag(ZERO_FLAG, m.registers.X == 0)
 	// iny
 	case 0b11001000:
 		m.registers.Y++
-		m.setFlag(NEGATIVE_FLAG, m.registers.Y & 0b10000000 != 0)
+		m.setFlag(NEGATIVE_FLAG, m.registers.Y&0b10000000 != 0)
 		m.setFlag(ZERO_FLAG, m.registers.Y == 0)
-default:
+	default:
 		opcode, addressMode := parseOpcode(rawOpcode)
 		switch opcode {
 		case 0b01101:
