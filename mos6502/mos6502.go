@@ -466,6 +466,70 @@ func (m *Mos6502) execLsr(addressMode uint8) {
 	m.setFlag(ZERO_FLAG, *content == 0)
 }
 
+func (m *Mos6502) execOra(addressMode uint8) {
+	var mode AddressMode
+	switch addressMode {
+	case 0b010:
+		mode = Immediate
+	case 0b001:
+		mode = ZeroPage
+	case 0b101:
+		mode = ZeroPageX
+	case 0b011:
+		mode = Absolute
+	case 0b111:
+		mode = AbsoluteX
+	case 0b110:
+		mode = AbsoluteY
+	case 0b000:
+		mode = IndirectIndexedX
+	case 0b100:
+		mode = IndexedIndirectY
+	}
+	content := *m.getPointerByAddressMode(mode)
+
+	m.registers.A |= content
+
+	m.setFlag(NEGATIVE_FLAG, m.registers.A & 0b10000000 != 0)
+	m.setFlag(ZERO_FLAG, m.registers.A == 0)
+}
+
+func (m *Mos6502) execRol(addressMode uint8) {
+	var mode AddressMode
+	switch addressMode {
+	case 0b010:
+		mode = Accumulator
+	case 0b001:
+		mode = ZeroPage
+	case 0b101:
+		mode = ZeroPageX
+	case 0b011:
+		mode = Absolute
+	case 0b111:
+		mode = AbsoluteX
+	}
+	addr := m.getPointerByAddressMode(mode)
+
+	// Afaik, this is the idiomatic way to get the byte value of a boolean. I
+	// could just ignore the existence of isFlagSet and just grab the flag
+	// straight from m.registers.P but I prefer not to do it for the sake of
+	// separation of concerns, as the flags were abstracted away with the
+	// function. I still hope this is optimized-out tho.
+	var carry uint8
+	if m.isFlagSet(CARRY_FLAG) {
+		carry = 1
+	} else {
+		carry = 0
+	}
+
+	m.setFlag(CARRY_FLAG, *addr & 0b10000000 != 0)
+	*addr = *addr << 1
+	*addr |= carry
+
+	m.setFlag(NEGATIVE_FLAG, *addr & 0b10000000 != 0)
+	m.setFlag(ZERO_FLAG, *addr != 0)
+}
+
 //
 // Branches and jumps.
 //
@@ -551,7 +615,7 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	case 0b00010000:
 		m.execBranchOnNotFlag(NEGATIVE_FLAG)
 	// bvc
-	case 0b0101000:
+	case 0b01010000:
 		m.execBranchOnNotFlag(OVERFLOW_FLAG)
 	case 0b01001100:
 		m.execJmpAbsolute()
@@ -597,6 +661,26 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 		m.registers.Y++
 		m.setFlag(NEGATIVE_FLAG, m.registers.Y&0b10000000 != 0)
 		m.setFlag(ZERO_FLAG, m.registers.Y == 0)
+	// pha
+	case 0b01001000:
+		m.registers.S--
+		m.SetMemory(uint64(m.registers.S), m.registers.A)
+	// pla
+	case 0b01101000:
+		m.registers.A, _ = m.GetMemory(uint64(m.registers.S))
+		m.registers.S++
+		m.setFlag(NEGATIVE_FLAG, m.registers.A & 0b10000000 != 0)
+		m.setFlag(ZERO_FLAG, m.registers.A != 0)
+	// php
+	case 0b00001000:
+		m.registers.S--
+		m.SetMemory(uint64(m.registers.S), m.registers.P)
+	// plp
+	case 0b00101000:
+		m.registers.P, _ = m.GetMemory(uint64(m.registers.S))
+		m.registers.S++
+		m.setFlag(NEGATIVE_FLAG, m.registers.P & 0b10000000 != 0)
+		m.setFlag(ZERO_FLAG, m.registers.P != 0)
 	default:
 		opcode, addressMode := parseOpcode(rawOpcode)
 		switch opcode {
@@ -630,6 +714,10 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 			m.execLdxOrLdy(addressMode, &m.registers.Y)
 		case 0b01010:
 			m.execLsr(addressMode)
+		case 0b00001:
+			m.execOra(addressMode)
+		case 0b00110:
+			m.execRol(addressMode)
 		}
 	}
 
