@@ -7,9 +7,9 @@ import (
 )
 
 type ArchitectureInfo struct {
-	Name string
+	Name           string
 	RegistersNames []string
-	WordWidth uint16
+	WordWidth      uint16
 }
 
 // Interface that machine structs are required to implement to work with EGG.
@@ -84,8 +84,8 @@ const (
 // Struct returned from NextInstruction() when a call is performed.
 type Call struct {
 	Number uint64
-	Arg1 uint64
-	Arg2 uint64
+	Arg1   uint64
+	Arg2   uint64
 }
 
 // Internationalization context available for architectures.

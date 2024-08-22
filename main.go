@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/gboncoffee/egg/assembler"
 	"github.com/gboncoffee/egg/machine"
 	"github.com/gboncoffee/egg/mips"
 	"github.com/gboncoffee/egg/riscv"
@@ -77,6 +78,7 @@ func main() {
 	machine.InterCtx.Init()
 	machine.InterCtx.AddLocale("pt_BR", brazilian)
 	machine.InterCtx.AutoSetPreferedLocale()
+	assembler.InterCtx = &machine.InterCtx
 
 	log.SetFlags(0)
 

@@ -4,11 +4,10 @@ package assembler
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
+
+	"github.com/gboncoffee/intergo"
 )
 
 const (
@@ -16,10 +15,16 @@ const (
 	TOKEN_INSTRUCTION
 	TOKEN_ARG
 	TOKEN_LITERAL
-	TOKEN_DIRECTIVE
-	TOKEN_DIRECTIVE_ARGUMENT
 )
 
+// This variable is a workaround between circular imports: ideally, we would
+// just use InterCtx, but we cannot import machine here as machine
+// already imports us. The main function will point this to the machine one.
+// Please don't touch.
+var InterCtx *intergo.InterContext
+
+// Can be a label, an instruction, an argument or a literal. All directives are
+// resolved in the tokenizer stage.
 type Token struct {
 	Line  int
 	File  *string
@@ -27,229 +32,156 @@ type Token struct {
 	Value []byte
 }
 
-// Adds some specific bytes. Like a literal but easier with numbers. The size
-// argument shall be 1, 2, 4 or 8.
-func bitsDirective(fileName *string, lineNum int, args *string, size int, tokens *[]Token) error {
-	*args = strings.TrimSpace(*args)
-	if len(*args) == 0 {
-		return fmt.Errorf("%v:%v: Expected literal bytes after bits directive", *fileName, lineNum)
-	}
-
-	bitsize := size * 8
-
-	argsSlice := strings.Split(*args, " ")
-	literal := make([]byte, size*len(argsSlice))
-	for i, arg := range argsSlice {
-		n, err := strconv.ParseUint(arg, 0, bitsize)
-		if err != nil {
-			return fmt.Errorf("%v:%v: Cannot convert %v to a %v bits number", *fileName, lineNum, arg, bitsize)
-		}
-
-		for j := 0; j < size; j++ {
-			literal[i*size+j] = byte(n)
-			n = n >> 8
-		}
-	}
-
-	*tokens = append(*tokens, Token{
-		Line:  lineNum,
-		File:  fileName,
-		Type:  TOKEN_LITERAL,
-		Value: literal,
-	})
-
-	return nil
+// This token is specifically an instruction. An array of these is passed to the
+// debugger.
+type DebuggerToken struct {
+	Line        int
+	File        *string
+	Instruction string
+	Args        string
+	Address     uint64
+	Label       string
 }
 
-// Creates an empty literal with the number in *args as the size (in bytes).
-func spaceDirective(fileName *string, lineNum int, args *string, tokens *[]Token) error {
-	n, err := strconv.ParseUint(*args, 0, 64)
-	if err != nil {
-		return fmt.Errorf("%v:%v: Cannot create space: Cannot parse %v to number: %v", *fileName, lineNum, *args, err)
-	}
-	*tokens = append(*tokens, Token{
-		Line:  lineNum,
-		File:  fileName,
-		Type:  TOKEN_LITERAL,
-		Value: make([]byte, n),
-	})
-
-	return nil
+// This kind of token can be only instructions and literals (only instructions
+// have arguments). Labels and arguments are already "resolved". The Reserved
+// field is reserved for architecture-specific use (example: storing information
+// regarding the addressing mode in 6502).
+type ResolvedToken struct {
+	Line     int
+	File     *string
+	Type     int
+	Address  uint64
+	Value    []byte
+	Args     []uint64
+	Reserved uintptr
 }
 
-func getHexNumber(r rune) (uint8, error) {
-	if 0x30 <= r && r <= 0x39 {
-		return uint8(r - 0x30), nil
-	} else if 0x41 <= r && r <= 0x46 {
-		return uint8(r - 0x37), nil
-	} else if 0x61 <= r && r <= 0x66 {
-		return uint8(r - 0x57), nil
-	} else {
-		return 0, errors.New("malformed hex number")
-	}
+// For intermediate reasons.
+type Instruction struct {
+	Line     int
+	File     *string
+	Mnemonic string
+	Args     []string
+	Size     uint64
+	Reserved uintptr
 }
 
-// Line shall already be trimmed so the function works both with .literal and #.
-// Parses everything cleanly excepts that any % followed by a two-digit hex
-// number (e.g., %FA) in substituted by it's own value. Use %% for a literal %.
-// Trailing % are also inserted.
-func parseLiteral(fileName *string, line *string, lineNum int, tokens *[]Token) {
-	var b strings.Builder
-	lit := *line
-	i := 0
-	for i < len(lit) {
-		if lit[i] == '%' {
-			if i+1 < len(lit) && lit[i+1] == '%' {
-				b.WriteRune('%')
-				i += 2
-			} else if i+2 < len(lit) {
-				b2, err := getHexNumber(rune(lit[i+1]))
-				if err != nil {
-					b.WriteRune('%')
-					i++
-					continue
-				}
-				b1, err := getHexNumber(rune(lit[i+2]))
-				if err != nil {
-					b.WriteRune('%')
-					i++
-					continue
-				}
-				b.WriteRune(rune(b1 | (b2 << 4)))
-				i += 3
-			} else {
-				b.WriteRune('%')
+func TranslateArgument(arg string, labels map[string]uint64, translateArg func(string) (uint64, error)) (uint64, error) {
+	return 0, nil
+}
+
+// "Resolve" tokens. The process callback can be used for basically anything,
+// but it MUST set the Size field. For example, it may remove parenthesis from
+// an argument when the architecture accepts them, and set something with the
+// Reserved field informing that the addressing mode of the instruction is XYZ.
+//
+// translateArg is passed directly to TranslateArgument.
+func ResolveTokens(tokens []Token, process func(*Instruction) error, translateArg func(string) (uint64, error)) ([]ResolvedToken, error) {
+	resolvedTokens := []ResolvedToken{}
+	labels := make(map[string]uint64)
+	address := uint64(0)
+
+	// We use this so we can process everything and only after translate
+	// the arguments.
+	arguments := make(map[uint64][]string)
+
+	for i := 0; i < len(tokens); i++ {
+		token := &tokens[i]
+		switch token.Type {
+		// Token before instruction.
+		case TOKEN_ARG:
+			panic(InterCtx.Get("If you're reading this, there's a bug in the emulator. Please fill an issue at https://github.com/gboncoffee/egg reporting the bug with the Assembly you're trying to run and command line arguments you used to run EGG."))
+		case TOKEN_LABEL:
+			labels[string(token.Value)] = address
+		case TOKEN_LITERAL:
+			resolvedTokens = append(resolvedTokens, ResolvedToken{
+				Line:    token.Line,
+				File:    token.File,
+				Type:    TOKEN_LITERAL,
+				Address: address,
+				Value:   token.Value,
+			})
+			address += uint64(len(token.Value))
+		case TOKEN_INSTRUCTION:
+			instruction := Instruction{
+				Line:     token.Line,
+				File:     token.File,
+				Mnemonic: string(token.Value),
+				Args:     []string{},
+			}
+
+			// Squeeze all arguments into the Intruction variable.
+			i++
+			for i < len(tokens) && tokens[i].Type == TOKEN_ARG {
+				instruction.Args = append(instruction.Args, string(tokens[i].Value))
 				i++
 			}
-		} else {
-			b.WriteRune(rune(lit[i]))
-			i++
-		}
-	}
+			i--
 
-	*tokens = append(*tokens, Token{
-		File:  fileName,
-		Line:  lineNum,
-		Type:  TOKEN_LITERAL,
-		Value: []byte(b.String()),
-	})
-}
+			if err := process(&instruction); err != nil {
+				return nil, err
+			}
 
-// Line shall already be trimmed.
-func parseDirective(fileName *string, line *string, lineNum int, tokens *[]Token) error {
-	if len(*line) == 0 {
-		return fmt.Errorf("%v:%v: Expected a directive name", *fileName, lineNum)
-	}
-
-	name, arg, _ := strings.Cut(*line, " ")
-	switch name {
-	case "include":
-		file := strings.TrimSpace(arg)
-		if len(file) == 0 {
-			return fmt.Errorf("%v:%v: Expected file name to include", *fileName, lineNum)
-		}
-		return Tokenize(file, tokens)
-	case "literal":
-		lit := strings.TrimSpace(arg)
-		parseLiteral(fileName, &lit, lineNum, tokens)
-		return nil
-	case "bits8":
-		return bitsDirective(fileName, lineNum, &arg, 1, tokens)
-	case "bits16":
-		return bitsDirective(fileName, lineNum, &arg, 2, tokens)
-	case "bits32":
-		return bitsDirective(fileName, lineNum, &arg, 4, tokens)
-	case "bits64":
-		return bitsDirective(fileName, lineNum, &arg, 8, tokens)
-	case "space":
-		return spaceDirective(fileName, lineNum, &arg, tokens)
-	}
-
-	return fmt.Errorf("%v:%v: Unknown directive %v", *fileName, lineNum, name)
-}
-
-func parseInstruction(fileName *string, line *string, lineNum int, tokens *[]Token) {
-	*line = strings.TrimSpace(*line)
-	mnemonic, args, hasMne := strings.Cut(*line, " ")
-	*tokens = append(*tokens, Token{
-		Line:  lineNum,
-		File:  fileName,
-		Type:  TOKEN_INSTRUCTION,
-		Value: []byte(mnemonic),
-	})
-
-	if hasMne {
-		for _, arg := range strings.Split(args, ",") {
-			arg = strings.TrimSpace(arg)
-			*tokens = append(*tokens, Token{
-				Line:  lineNum,
-				File:  fileName,
-				Type:  TOKEN_ARG,
-				Value: []byte(arg),
+			// Finally create a proper token and append it. The arguments are
+			// going to be treated only after we finish with all labels, of
+			// course.
+			resolvedTokens = append(resolvedTokens, ResolvedToken{
+				Line:     instruction.Line,
+				File:     instruction.File,
+				Value:    []byte(instruction.Mnemonic),
+				Address:  address,
+				Reserved: instruction.Reserved,
 			})
+
+			arguments[address] = instruction.Args
 		}
 	}
-}
 
-func parseLine(fileName *string, line *string, lineNum int, tokens *[]Token) error {
-	// This uncomments and trims the line.
-	*line, _, _ = strings.Cut(*line, ";")
-	*line = strings.TrimSpace(*line)
-	if len(*line) == 0 {
-		return nil
-	}
+	// Now that we have all labels, we can treat the arguments.
+	for i := 0; i < len(resolvedTokens); i++ {
+		token := &resolvedTokens[i]
+		if token.Type == TOKEN_INSTRUCTION {
+			args, shallPanic := arguments[token.Address]
+			if shallPanic {
+				panic(InterCtx.Get("If you're reading this, there's a bug in the emulator. Please fill an issue at https://github.com/gboncoffee/egg reporting the bug with the Assembly you're trying to run and command line arguments you used to run EGG."))
+			}
 
-	// If a literal.
-	if (*line)[0] == '#' {
-		if len(*line) <= 1 {
-			return fmt.Errorf("%v:%v: Expected literal content", *fileName, lineNum)
+			for _, arg := range args {
+				result, err := TranslateArgument(arg, labels, translateArg)
+				if err != nil {
+					return nil, fmt.Errorf(InterCtx.Get("%v:%v: Error on argument translation: %v"), *token.File, token.Line, err)
+				}
+				token.Args = append(token.Args, result)
+			}
 		}
-		*line = (*line)[1:]
-		parseLiteral(fileName, line, lineNum, tokens)
-		return nil
-	}
-	// If a directive.
-	if (*line)[0] == '.' {
-		*line = (*line)[1:]
-		*line = strings.TrimSpace(*line)
-		return parseDirective(fileName, line, lineNum, tokens)
 	}
 
-	// Now we check if there's a label declared there.
-	beg, end, hasLabel := strings.Cut(*line, ":")
-	if hasLabel {
-		*tokens = append(*tokens, Token{Line: lineNum,
-			File:  fileName,
-			Type:  TOKEN_LABEL,
-			Value: []byte(strings.Clone(beg)),
-		})
-		beg = end
-	}
-
-	beg = strings.TrimSpace(beg)
-	if len(beg) != 0 {
-		// Finally we put an instruction there.
-		parseInstruction(fileName, &beg, lineNum, tokens)
-	}
-
-	return nil
+	return resolvedTokens, nil
 }
 
+// Tokenize recursively (as of .include directives) creates a Token array from
+// file names. I.e., it opens and reads the passed file, opening and reading
+// other files when reaching a .include.
 func Tokenize(fileName string, tokens *[]Token) error {
+	// Private functions used here are defined in tokenizer.go for the sake
+	// of organization.
+
 	file, err := os.Open(fileName)
 	if err != nil {
-		return fmt.Errorf("couldn't open file: %v", err)
+		return fmt.Errorf(InterCtx.Get("couldn't open file: %v"), err)
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 
-	// This reads line by line
+	// This reads line by line. The i is necessary so we actually knows where
+	// we're in the file.
 	i := 1
 	for scanner.Scan() {
 		line := scanner.Text()
 		if err := scanner.Err(); err != nil {
-			return fmt.Errorf("error reading file %v: %v", fileName, err)
+			return fmt.Errorf(InterCtx.Get("error reading file %v: %v"), fileName, err)
 		}
 
 		err = parseLine(&fileName, &line, i, tokens)
