@@ -724,7 +724,7 @@ func assembleSpecial(t assembler.ResolvedToken) (uint32, error) {
 	var shamt uint8
 	var funct uint8
 
-	switch t.Value {
+	switch string(t.Value) {
 	case "jalr":
 		funct = 9
 		if len(t.Args) == 1 {
@@ -787,7 +787,7 @@ func assembleSpecial(t assembler.ResolvedToken) (uint32, error) {
 		rd = t.Args[0]
 		rs = t.Args[1]
 		rt = t.Args[2]
-		switch t.Value {
+		switch string(t.Value) {
 		case "movz":
 			funct = 0xa
 		case "movn":
@@ -851,7 +851,7 @@ func assembleSpecial2(t assembler.ResolvedToken) (uint32, error) {
 	rs := t.Args[1]
 
 	var funct uint8
-	if t.Value == "clz" {
+	if string(t.Value) == "clz" {
 		funct = 16
 	} else {
 		funct = 17
@@ -873,7 +873,7 @@ func assembleSpecial3(t assembler.ResolvedToken) (uint32, error) {
 	rt := t.Args[1]
 
 	var shamt uint8
-	if t.Value == "seb" {
+	if string(t.Value) == "seb" {
 		shamt = 16
 	} else {
 		shamt = 24
@@ -895,7 +895,7 @@ func assembleRegimm(t assembler.ResolvedToken, addr int) (uint32, error) {
 	rs := t.Args[0]
 
 	var funct uint8
-	if t.Value == "bltz" {
+	if string(t.Value) == "bltz" {
 		funct = 0
 	} else {
 		funct = 1
@@ -1197,7 +1197,7 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	bin := uint32(0)
 	var err error
 
-	switch t.Value {
+	switch string(t.Value) {
 	case "jalr", "jr", "add", "addu", "sub", "subu", "slt", "sltu", "and", "or", "xor", "nor", "sll", "sllv", "sra", "srav", "srl", "srlv", "mult", "div", "mfhi", "mflo", "mthi", "mtlo", "movz", "movn":
 		bin, err = assembleSpecial(t)
 	case "clz", "clo":
@@ -1276,7 +1276,11 @@ func assemble(t []assembler.ResolvedToken) ([]uint8, error) {
 	// Pre calculate our size. Why not?
 	size := uint64(0)
 	for _, i := range t {
-		size += i.Size
+		if i.Type == assembler.TOKEN_INSTRUCTION {
+			size += 4
+		} else {
+			size += uint64(len(i.Value))
+		}
 	}
 
 	var err error
@@ -1372,20 +1376,28 @@ func (m *Mips) GetRegisterNumber(r string) (uint64, error) {
 	return reg, nil
 }
 
-func (m *Mips) Assemble(asm string) ([]uint8, []assembler.DebuggerToken, error) {
-	tokens := assembler.Tokenize(asm)
-	rt, err := assembler.ResolveTokensFixedSize(tokens, 4, translateArgs)
+func (m *Mips) Assemble(file string) ([]uint8, []assembler.DebuggerToken, error) {
+	tokens := []assembler.Token{}
+	err := assembler.Tokenize(file, &tokens)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	symbs := assembler.CreateDebugTokensFixedSize(tokens, 4)
-	code, err := assemble(rt)
+	resolvedTokens, debuggerTokens, err := assembler.ResolveTokens(tokens, func(i *assembler.Instruction) error {
+		i.Size = 4
+		return nil
+	}, translateArgs)
+
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return code, symbs, nil
+	code, err := assemble(resolvedTokens)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return code, debuggerTokens, nil
 }
 
 func (m *Mips) ArchitectureInfo() machine.ArchitectureInfo {
