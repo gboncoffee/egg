@@ -38,7 +38,7 @@ type DebuggerToken struct {
 	Line        int
 	File        *string
 	Instruction string
-	Args        string
+	Args        []string
 	Address     uint64
 	Label       string
 }
@@ -77,9 +77,10 @@ func TranslateArgument(arg string, labels map[string]uint64, translateArg func(s
 // Reserved field informing that the addressing mode of the instruction is XYZ.
 //
 // translateArg is passed directly to TranslateArgument.
-func ResolveTokens(tokens []Token, process func(*Instruction) error, translateArg func(string) (uint64, error)) ([]ResolvedToken, error) {
+func ResolveTokens(tokens []Token, process func(*Instruction) error, translateArg func(string) (uint64, error)) ([]ResolvedToken, []DebuggerToken, error) {
 	resolvedTokens := []ResolvedToken{}
 	labels := make(map[string]uint64)
+	reverseLabels := make(map[uint64]string)
 	address := uint64(0)
 
 	// We use this so we can process everything and only after translate
@@ -94,6 +95,7 @@ func ResolveTokens(tokens []Token, process func(*Instruction) error, translateAr
 			panic(InterCtx.Get("If you're reading this, there's a bug in the emulator. Please fill an issue at https://github.com/gboncoffee/egg reporting the bug with the Assembly you're trying to run and command line arguments you used to run EGG."))
 		case TOKEN_LABEL:
 			labels[string(token.Value)] = address
+			reverseLabels[address] = string(token.Value)
 		case TOKEN_LITERAL:
 			resolvedTokens = append(resolvedTokens, ResolvedToken{
 				Line:    token.Line,
@@ -120,7 +122,7 @@ func ResolveTokens(tokens []Token, process func(*Instruction) error, translateAr
 			i--
 
 			if err := process(&instruction); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			// Finally create a proper token and append it. The arguments are
@@ -138,7 +140,9 @@ func ResolveTokens(tokens []Token, process func(*Instruction) error, translateAr
 		}
 	}
 
-	// Now that we have all labels, we can treat the arguments.
+	// Now that we have all labels, we can treat the arguments. We also create
+	// the debugger tokens.
+	debuggerTokens := []DebuggerToken{}
 	for i := 0; i < len(resolvedTokens); i++ {
 		token := &resolvedTokens[i]
 		if token.Type == TOKEN_INSTRUCTION {
@@ -147,17 +151,26 @@ func ResolveTokens(tokens []Token, process func(*Instruction) error, translateAr
 				panic(InterCtx.Get("If you're reading this, there's a bug in the emulator. Please fill an issue at https://github.com/gboncoffee/egg reporting the bug with the Assembly you're trying to run and command line arguments you used to run EGG."))
 			}
 
+			debuggerTokens = append(debuggerTokens, DebuggerToken{
+				Line: token.Line,
+				File: token.File,
+				Instruction: string(token.Value),
+				Args: args,
+				Address: token.Address,
+				Label: reverseLabels[token.Address],
+			})
+
 			for _, arg := range args {
 				result, err := TranslateArgument(arg, labels, translateArg)
 				if err != nil {
-					return nil, fmt.Errorf(InterCtx.Get("%v:%v: Error on argument translation: %v"), *token.File, token.Line, err)
+					return nil, nil, fmt.Errorf(InterCtx.Get("%v:%v: Error on argument translation: %v"), *token.File, token.Line, err)
 				}
 				token.Args = append(token.Args, result)
 			}
 		}
 	}
 
-	return resolvedTokens, nil
+	return resolvedTokens, debuggerTokens, nil
 }
 
 // Tokenize recursively (as of .include directives) creates a Token array from
