@@ -59,15 +59,6 @@ func runMachine(m machine.Machine) {
 	}
 }
 
-func readToString(filename string) (string, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return "", err
-	}
-
-	return string(data), nil
-}
-
 func main() {
 	var architeture string
 	var debug bool
@@ -127,15 +118,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	asm, err := readToString(file)
+	code, sym, err := m.Assemble(file)
 	if err != nil {
-		log.Printf(machine.InterCtx.Get("Could not read supplied file %v\n"), file)
-		os.Exit(1)
-	}
-
-	code, sym, err := m.Assemble(asm)
-	if err != nil {
-		log.Printf(machine.InterCtx.Get("Error assembling file %v: %v\n"), file, err)
+		log.Println(err)
 		os.Exit(1)
 	}
 
