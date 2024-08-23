@@ -67,8 +67,18 @@ type Instruction struct {
 	Reserved uintptr
 }
 
+// If the token is not a label, uses the provided function to translate it.
 func TranslateArgument(arg string, labels map[string]uint64, translateArg func(string) (uint64, error)) (uint64, error) {
-	return 0, nil
+	value, hasLabel := labels[arg]
+	if !hasLabel {
+		var err error
+		value, err = translateArg(arg)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return value, nil
 }
 
 // "Resolve" tokens. The process callback can be used for basically anything,
@@ -131,12 +141,14 @@ func ResolveTokens(tokens []Token, process func(*Instruction) error, translateAr
 			resolvedTokens = append(resolvedTokens, ResolvedToken{
 				Line:     instruction.Line,
 				File:     instruction.File,
+				Type: TOKEN_INSTRUCTION,
 				Value:    []byte(instruction.Mnemonic),
 				Address:  address,
 				Reserved: instruction.Reserved,
 			})
 
 			arguments[address] = instruction.Args
+			address += instruction.Size
 		}
 	}
 
@@ -146,8 +158,8 @@ func ResolveTokens(tokens []Token, process func(*Instruction) error, translateAr
 	for i := 0; i < len(resolvedTokens); i++ {
 		token := &resolvedTokens[i]
 		if token.Type == TOKEN_INSTRUCTION {
-			args, shallPanic := arguments[token.Address]
-			if shallPanic {
+			args, ok := arguments[token.Address]
+			if !ok {
 				panic(InterCtx.Get("If you're reading this, there's a bug in the emulator. Please fill an issue at https://github.com/gboncoffee/egg reporting the bug with the Assembly you're trying to run and command line arguments you used to run EGG."))
 			}
 

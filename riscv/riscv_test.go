@@ -1,10 +1,12 @@
 package riscv
 
 import (
-	"testing"
 	"math"
 	"reflect"
-	_ "embed"
+	"testing"
+
+	"github.com/gboncoffee/egg/assembler"
+	"github.com/gboncoffee/intergo"
 )
 
 func TestRegister(t *testing.T) {
@@ -99,12 +101,15 @@ func TestChunkedMem(t *testing.T) {
 	}
 }
 
-//go:embed test.asm
-var asm string
-
 func TestAssembler(t *testing.T) {
+
+	// We must setup the interctx so it does not panics with nil pointer
+	// dereferencing. Of course let's not bother with the languages.
+	assembler.InterCtx = &intergo.InterContext{}
+	assembler.InterCtx.Init()
+
 	var m RiscV
-	code, _, err := m.Assemble(asm)
+	code, _, err := m.Assemble("test.asm")
 	if err != nil {
 		t.Fatalf("Assembling failed with '%v'", err)
 	}
@@ -189,9 +194,6 @@ func TestAssembler(t *testing.T) {
 	}
 }
 
-//go:embed test-instructions.asm
-var inst string
-
 func (m *RiscV) getByName(n string) uint64 {
 	r, _ := m.GetRegisterNumber(n)
 	v, _ := m.GetRegister(r)
@@ -224,7 +226,7 @@ func (m *RiscV) ensureDontBranch(t *testing.T, i string) {
 func TestInstructions(t *testing.T) {
 
 	var m RiscV
-	code, _, err := m.Assemble(inst)
+	code, _, err := m.Assemble("test-instructions.asm")
 	if err != nil {
 		t.Fatalf("Couldn't assemble: %v", err)
 	}
