@@ -141,7 +141,7 @@ func ResolveTokens(tokens []Token, process func(*Instruction) error, translateAr
 			resolvedTokens = append(resolvedTokens, ResolvedToken{
 				Line:     instruction.Line,
 				File:     instruction.File,
-				Type: TOKEN_INSTRUCTION,
+				Type:     TOKEN_INSTRUCTION,
 				Value:    []byte(instruction.Mnemonic),
 				Address:  address,
 				Reserved: instruction.Reserved,
@@ -164,12 +164,12 @@ func ResolveTokens(tokens []Token, process func(*Instruction) error, translateAr
 			}
 
 			debuggerTokens = append(debuggerTokens, DebuggerToken{
-				Line: token.Line,
-				File: token.File,
+				Line:        token.Line,
+				File:        token.File,
 				Instruction: string(token.Value),
-				Args: args,
-				Address: token.Address,
-				Label: reverseLabels[token.Address],
+				Args:        args,
+				Address:     token.Address,
+				Label:       reverseLabels[token.Address],
 			})
 
 			for _, arg := range args {
