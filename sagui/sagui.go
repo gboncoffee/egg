@@ -276,7 +276,7 @@ func assembleJr(t assembler.ResolvedToken) (uint8, error) {
 		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), "jr")
 	}
 
-	return 0x20 | uint8(t.Args[0] & 0x3), nil
+	return 0x20 | uint8(t.Args[0]&0x3), nil
 }
 
 func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) error {
@@ -293,7 +293,7 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	case "ebreak":
 		bin = 0x60
 	default:
-		return fmt.Errorf(machine.InterCtx.Get("unknown instruction: %v"), t.Value)
+		return fmt.Errorf(machine.InterCtx.Get("unknown instruction: %v"), string(t.Value))
 	}
 
 	if err != nil {
@@ -322,7 +322,7 @@ func assemble(t []assembler.ResolvedToken) ([]uint8, error) {
 		if i.Type == assembler.TOKEN_INSTRUCTION {
 			err = assembleInstruction(code, addr, i)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf(machine.InterCtx.Get("%v:%v: Error assembling: %v"), *i.File, i.Line, err)
 			}
 		} else {
 			for _, c := range []uint8(i.Value) {

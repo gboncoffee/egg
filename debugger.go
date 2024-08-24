@@ -406,9 +406,9 @@ func parseBreakpoint(arg string, sym []assembler.DebuggerToken) (Breakpoint, err
 			if symb.Address == value {
 				return Breakpoint{
 					Address: value,
-					File: symb.File,
-					Line: symb.Line,
-					Label: symb.Label,
+					File:    symb.File,
+					Line:    symb.Line,
+					Label:   symb.Label,
 				}, nil
 			}
 		}
@@ -425,9 +425,9 @@ func parseBreakpoint(arg string, sym []assembler.DebuggerToken) (Breakpoint, err
 				if uint64(symb.Line) == line && *symb.File == file {
 					return Breakpoint{
 						Address: symb.Address,
-						File: symb.File,
-						Line: symb.Line,
-						Label: symb.Label,
+						File:    symb.File,
+						Line:    symb.Line,
+						Label:   symb.Label,
 					}, nil
 				}
 			}
@@ -438,9 +438,9 @@ func parseBreakpoint(arg string, sym []assembler.DebuggerToken) (Breakpoint, err
 					if symb.Label == arg {
 						return Breakpoint{
 							Address: symb.Address,
-							File: symb.File,
-							Line: symb.Line,
-							Label: symb.Label,
+							File:    symb.File,
+							Line:    symb.Line,
+							Label:   symb.Label,
 						}, nil
 					}
 				}
@@ -553,7 +553,7 @@ func debuggerRemove(sym []assembler.DebuggerToken, breakpoints *[]Breakpoint, ar
 		}
 	}
 
-	fmt.Printf(machine.InterCtx.Get("No breakpoint at %v\n"), breakpoint2String(breakpoint))
+	fmt.Printf(machine.InterCtx.Get("No breakpoint %v\n"), breakpoint2String(breakpoint))
 	return
 
 FOUND:

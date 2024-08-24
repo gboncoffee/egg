@@ -1257,7 +1257,7 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	case "sw":
 		bin, err = assembleSw(t)
 	default:
-		return fmt.Errorf(machine.InterCtx.Get("unknown instruction: %v"), t.Value)
+		return fmt.Errorf(machine.InterCtx.Get("unknown instruction: %v"), string(t.Value))
 	}
 
 	if err != nil {
@@ -1291,7 +1291,7 @@ func assemble(t []assembler.ResolvedToken) ([]uint8, error) {
 		if i.Type == assembler.TOKEN_INSTRUCTION {
 			err = assembleInstruction(code, addr, i)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf(machine.InterCtx.Get("%v:%v: Error assembling: %v"), *i.File, i.Line, err)
 			}
 			addr += 4
 		} else {
