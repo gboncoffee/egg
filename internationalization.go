@@ -207,6 +207,7 @@ No comando print, <addr>#tamanho significa "tantas instruções após addr".
 	"error reading file %v: %v":                                 "erro lendo o arquivo %v: %v",
 	"%v:%v: Expected literal bytes after bits directive":        "%v:%v: Bytes literais esperados após a diretiva de bits",
 	"%v:%v: Cannot convert %v to a %v bits number":              "%v:%v: Não foi possível converter %v para um número de %v bits",
+	"%v:%v: Expected a number of bytes after space directive":   "%v:%v: Número de bytes esperado após a diretiva de espaço",
 	"%v:%v: Cannot create space: Cannot parse %v to number: %v": "%v:%v: Impossível criar espaço: Impossível traduzir %v para número: %v",
 	"%v:%v: Expected a directive name":                          "%v:%v: Nome de diretiva esperado",
 	"%v:%v: Expected file name to include":                      "%v:%v: Nome de arquivo para inclusão esperado.",
@@ -227,6 +228,7 @@ No comando print, <addr>#tamanho significa "tantas instruções após addr".
 	"unknown instruction: %v":                                              "instrução desconhecida: %v",
 	"no such register: %v":                                                 "registrador inexistente: %v",
 	"empty argument":                                                       "argumento vazio",
+	"error executing sra: negative shift amount":                           "erro executando sra: tamanho de shift negativo.",
 	// Version 3 updates.
 	"%v:%v: Error assembling: %v": "%v:%v: Erro montando: %v",
 

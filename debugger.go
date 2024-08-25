@@ -209,7 +209,7 @@ func getMemoryContentPrint(m machine.Machine, addr string, length string) ([]uin
 
 	mem, err := m.GetMemoryChunk(a, l)
 	if err != nil {
-		return nil, fmt.Errorf(machine.InterCtx.Get("cannot get memory content: %v"), err)
+		return nil, err
 	}
 
 	// I hope this is somehow "optimized out" to a simple padded copy.
@@ -543,6 +543,7 @@ func debuggerRemove(sym []assembler.DebuggerToken, breakpoints *[]Breakpoint, ar
 	breakpoint, err := parseBreakpoint(args[0], sym)
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 
 	var idx int

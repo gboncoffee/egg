@@ -207,7 +207,7 @@ func (m *RiscV) execArithmetic(rd uint8, rs1 uint8, rs2 uint8, func3 uint8, func
 		case 0x5:
 			if func7 == 0x20 {
 				if rs2v < 0 {
-					return fmt.Errorf("error executing sra: negative shift amount")
+					return errors.New(machine.InterCtx.Get("error executing sra: negative shift amount"))
 				}
 				r = rs1v >> rs2v
 			} else {

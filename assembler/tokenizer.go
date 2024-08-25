@@ -43,6 +43,9 @@ func bitsDirective(fileName *string, lineNum int, args *string, size int, tokens
 
 // Creates an empty literal with the number in *args as the size (in bytes).
 func spaceDirective(fileName *string, lineNum int, args *string, tokens *[]Token) error {
+	if len(*args) == 0 {
+		return fmt.Errorf(InterCtx.Get("%v:%v: Expected a number of bytes after space directive"), *fileName, lineNum)
+	}
 	n, err := strconv.ParseUint(*args, 0, 64)
 	if err != nil {
 		return fmt.Errorf(InterCtx.Get("%v:%v: Cannot create space: Cannot parse %v to number: %v"), *fileName, lineNum, *args, err)
@@ -131,6 +134,9 @@ func parseDirective(fileName *string, line *string, lineNum int, tokens *[]Token
 		return Tokenize(file, tokens)
 	case "literal":
 		lit := strings.TrimSpace(arg)
+		if len(lit) == 0 {
+			return fmt.Errorf(InterCtx.Get("%v:%v: Expected literal content"), *fileName, lineNum)
+		}
 		parseLiteral(fileName, &lit, lineNum, tokens)
 		return nil
 	case "bits8":

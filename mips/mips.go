@@ -1067,7 +1067,7 @@ func assembleBne(t assembler.ResolvedToken, addr int) (uint32, error) {
 
 func assembleJ(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 1 {
-		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument)"), t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
 	return uint32(2<<26) | uint32(t.Args[0]&0xfffffff), nil
@@ -1075,7 +1075,7 @@ func assembleJ(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleLb(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument)"), t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
@@ -1087,7 +1087,7 @@ func assembleLb(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleLbu(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument)"), t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
@@ -1099,7 +1099,7 @@ func assembleLbu(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleLh(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument)"), t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
@@ -1111,7 +1111,7 @@ func assembleLh(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleLhu(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument)"), t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
@@ -1123,7 +1123,7 @@ func assembleLhu(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleLw(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument)"), t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
@@ -1135,7 +1135,7 @@ func assembleLw(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleLwl(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument)"), t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
@@ -1147,7 +1147,7 @@ func assembleLwl(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleLwr(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument)"), t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
@@ -1159,7 +1159,7 @@ func assembleLwr(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleSb(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument)"), t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
@@ -1171,7 +1171,7 @@ func assembleSb(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleSh(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument)"), t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
@@ -1183,7 +1183,7 @@ func assembleSh(t assembler.ResolvedToken) (uint32, error) {
 
 func assembleSw(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
-		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument)"), t.Value)
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
 	code := uint32(t.Args[2] & 0xffff)
