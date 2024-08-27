@@ -79,6 +79,17 @@ label2:	add t0, t0, t0
 ; %% to escape it.
 msg:
 #Hello, World!%0a
+
+; Some directives are supported. "bitsxx" ones creates literal numbers in the
+; code, with the bit length specified:
+.bits8 0xca 0xfe 0xba 0xbe 0xde 0xad 0xbe 0xef
+.bits16 0xcafe 0xbabe 0xdead 0xbeef
+.bits32 0xcafebabe 0xdeadbeef
+.bits64 0xcafebabedeadbeef
+; The "space" directive adds some bytes of spacing in the code:
+.space 16
+; The "include" directive "copy-pastes" another file in the code:
+.include other-asm.asm
 ```
 
 Each architeture folder has test Assembly files you may use as examples.
