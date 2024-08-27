@@ -136,7 +136,7 @@ func main() {
 			os.Exit(1)
 		}
 		// Hello fellow Acme user. Plumb this: debugger.go:/debugMachine
-		debugMachine(m, sym, code)
+		debugMachine(m, sym, code, file)
 	} else {
 		runMachine(m)
 	}

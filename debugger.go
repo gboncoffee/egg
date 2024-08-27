@@ -42,62 +42,7 @@ func breakpoint2String(breakpoint Breakpoint) string {
 }
 
 func debuggerHelp() {
-	help := machine.InterCtx.Get(`Commands:
-
-help
-	Shows this help.
-	Shortcut: h
-print <expr>[@<length>]
-	Prints the content of registers and memory.
-	Shortcut: p
-printall
-	Prints the content of all registers.
-	Shortcut: pall
-next
-	Executes the next instruction, then pauses.
-	Shortcut: n
-continue
-	Continue execution until a BREAK call or breakpoint.
-	Shortcut: c
-break [expr]
-	With an argument, creates a new breakpoint. With no argument, shows all
-	breakpoints. Accepts numbers, Assembly labels and <file>:<line>.
-	Shortcut: b
-remove <expr>
-	Removes a breakpoint. Accepts numbers and Assembly labels.
-	Shortcut: r
-dump <address>@<length> <filename>
-	Dumps the content of memory to a file.
-	Shortcut: d
-rewind
-	Reloads the machine, i.e., asks it to return to it's original state.
-	Shortcut: rew
-set <expr>[@<length>] <content>
-	Changes the content of a register or memory.
-	Shortcut: s
-exit
-	Terminate debugging session.
-	Shortcut: e
-quit
-	Alias to exit.
-	Shortcut: q
-
-The print command generally follows this rules:
-- If the expression is only a register (e.g., x1, t1, zero, ra, etc), it prints
-  it's contents;
-- If the expression is a register with a length (e.g., t1@1, ra@7, etc), it
-  prints the content of the memory addressed by the content of the register.
-The set command works the same way.
-
-The dump command also accepts registers, but always dereference them.
-
-Both print and dump commands accepts the special expression #, which means the
-program itself. For example, you may dump the assembled program to a file by
-running 'dump # file'.
-
-In the print command, <addr>#<length> means "length instructions after addr".
-#<length> is a shortcut to use with the current instruction address.
-`)
+	help := machine.InterCtx.Get(MASSIVE_HELP_STRING)
 	fmt.Print(help)
 }
 
@@ -664,6 +609,30 @@ func debuggerRewind(m machine.Machine, prog []uint8) {
 	}
 }
 
+func debuggerReload(m machine.Machine, sym *[]assembler.DebuggerToken, breakpoints *[]Breakpoint, prog *[]uint8, fileName string) {
+	newCode, newSym, err := m.Assemble(fileName)
+	if err != nil {
+		fmt.Println(machine.InterCtx.Get("Error assembling file:"))
+		fmt.Println(err)
+		fmt.Println(machine.InterCtx.Get("Keeping old program and program state."))
+		return
+	}
+
+	err = m.LoadProgram(newCode)
+	if err != nil {
+		fmt.Println(machine.InterCtx.Get("Error loading new assembled code:"))
+		fmt.Println(err)
+		fmt.Println(machine.InterCtx.Get("Keeping old program and program state."))
+	}
+
+	*prog = newCode
+	*sym = newSym
+	*breakpoints = []Breakpoint{}
+
+	fmt.Println(machine.InterCtx.Get("Rebuild Assembly."))
+	fmt.Println(machine.InterCtx.Get("Reloaded machine."))
+}
+
 // Returns length (second value) as 0 if it's a register.
 func getSetExpr(m machine.Machine, expr string) (uint64, uint64, error) {
 	addr, length, has_at := strings.Cut(expr, "@")
@@ -736,7 +705,7 @@ func debuggerSet(m machine.Machine, args []string) {
 	}
 }
 
-func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8) {
+func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8, fileName string) {
 	version()
 	fmt.Println(machine.InterCtx.Get("Type 'help' for a list of commands."))
 
@@ -786,6 +755,8 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 				debuggerDump(m, wsl[1:], prog)
 			case "rewind", "rew":
 				debuggerRewind(m, prog)
+			case "reload", "rel":
+				debuggerReload(m, &sym, &breakpoints, &prog, fileName)
 			case "set", "s":
 				debuggerSet(m, wsl[1:])
 			case "exit", "e", "quit", "q":
