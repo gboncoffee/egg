@@ -15,7 +15,7 @@ import (
 	"github.com/gboncoffee/egg/sagui"
 )
 
-const VERSION = "3.0.0rc"
+const VERSION = "3.0.0"
 
 // Put new architetures here... (main.go:/switch architeture)
 func listArchs() {
@@ -136,7 +136,7 @@ func main() {
 			os.Exit(1)
 		}
 		// Hello fellow Acme user. Plumb this: debugger.go:/debugMachine
-		debugMachine(m, sym, code)
+		debugMachine(m, sym, code, file)
 	} else {
 		runMachine(m)
 	}

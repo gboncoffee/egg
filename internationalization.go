@@ -1,5 +1,65 @@
 package main
 
+const MASSIVE_HELP_STRING = `Commands:
+
+help
+	Shows this help.
+	Shortcut: h
+print <expr>[@<length>]
+	Prints the content of registers and memory.
+	Shortcut: p
+printall
+	Prints the content of all registers.
+	Shortcut: pall
+next
+	Executes the next instruction, then pauses.
+	Shortcut: n
+continue
+	Continue execution until a BREAK call or breakpoint.
+	Shortcut: c
+break [expr]
+	With an argument, creates a new breakpoint. With no argument, shows all
+	breakpoints. Accepts numbers, Assembly labels and <file>:<line>.
+	Shortcut: b
+remove <expr>
+	Removes a breakpoint. Accepts numbers and Assembly labels.
+	Shortcut: r
+dump <address>@<length> <filename>
+	Dumps the content of memory to a file.
+	Shortcut: d
+rewind
+	Reloads the machine, i.e., asks it to return to it's original state.
+	Shortcut: rew
+reload
+	Reload the Assembly files and them reloads the machine.
+	Shortcut: rel
+set <expr>[@<length>] <content>
+	Changes the content of a register or memory.
+	Shortcut: s
+exit
+	Terminate debugging session.
+	Shortcut: e
+quit
+	Alias to exit.
+	Shortcut: q
+
+The print command generally follows this rules:
+- If the expression is only a register (e.g., x1, t1, zero, ra, etc), it prints
+  it's contents;
+- If the expression is a register with a length (e.g., t1@1, ra@7, etc), it
+  prints the content of the memory addressed by the content of the register.
+The set command works the same way.
+
+The dump command also accepts registers, but always dereference them.
+
+Both print and dump commands accepts the special expression #, which means the
+program itself. For example, you may dump the assembled program to a file by
+running 'dump # file'.
+
+In the print command, <addr>#<length> means "length instructions after addr".
+#<length> is a shortcut to use with the current instruction address.
+`
+
 var brazilian = map[string]string{
 
 	//
@@ -39,62 +99,7 @@ var brazilian = map[string]string{
 	//
 
 	// Massive help string.
-	`Commands:
-
-help
-	Shows this help.
-	Shortcut: h
-print <expr>[@<length>]
-	Prints the content of registers and memory.
-	Shortcut: p
-printall
-	Prints the content of all registers.
-	Shortcut: pall
-next
-	Executes the next instruction, then pauses.
-	Shortcut: n
-continue
-	Continue execution until a BREAK call or breakpoint.
-	Shortcut: c
-break [expr]
-	With an argument, creates a new breakpoint. With no argument, shows all
-	breakpoints. Accepts numbers, Assembly labels and <file>:<line>.
-	Shortcut: b
-remove <expr>
-	Removes a breakpoint. Accepts numbers and Assembly labels.
-	Shortcut: r
-dump <address>@<length> <filename>
-	Dumps the content of memory to a file.
-	Shortcut: d
-rewind
-	Reloads the machine, i.e., asks it to return to it's original state.
-	Shortcut: rew
-set <expr>[@<length>] <content>
-	Changes the content of a register or memory.
-	Shortcut: s
-exit
-	Terminate debugging session.
-	Shortcut: e
-quit
-	Alias to exit.
-	Shortcut: q
-
-The print command generally follows this rules:
-- If the expression is only a register (e.g., x1, t1, zero, ra, etc), it prints
-  it's contents;
-- If the expression is a register with a length (e.g., t1@1, ra@7, etc), it
-  prints the content of the memory addressed by the content of the register.
-The set command works the same way.
-
-The dump command also accepts registers, but always dereference them.
-
-Both print and dump commands accepts the special expression #, which means the
-program itself. For example, you may dump the assembled program to a file by
-running 'dump # file'.
-
-In the print command, <addr>#<length> means "length instructions after addr".
-#<length> is a shortcut to use with the current instruction address.
-`: `Comandos:
+	MASSIVE_HELP_STRING: `Comandos:
 
 help
 	Mostra esse texto de ajuda.
@@ -124,6 +129,9 @@ dump <endereço>@<tamanho> <arquivo>
 rewind
 	Recarrega a máquina, isso é, pede para que ela retorne ao estado original.
 	Abreviação: rew
+reload
+	Recarrega os arquivos Assembly e então recarrega a máquina.
+	Abreviação: rel
 set <expr>[@tamanho] <conteúdo>
 	Muda o conteúdo de registradores ou da memória.
 	Abreviação: s
@@ -197,6 +205,10 @@ No comando print, <addr>#tamanho significa "tantas instruções após addr".
 	"New breakpoint %v\n":           "Novo ponto de parada (breakpoint) %v\n",
 	"remove expects a breakpoint to remove: remove <address/label/file:line>": "remove necessita de um ponto (breakpoint) para remover: remove <endereço/etiqueta/arquivo:linha>",
 	"No breakpoint %v\n": "Nenhum ponto de parada (breakpoint) %v\n",
+	"Error assembling file:": "Erro montando arquivo:",
+	"Keeping old program and program state.": "Mantendo o programa e estado anteriores",
+	"Error loading new assembled code:": "Erro carregando o novo código montado:",
+	"Rebuild Assembly.": "Assembly remontado.",
 
 	//
 	// assembler.go and tokenizer.go
