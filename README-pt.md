@@ -79,6 +79,17 @@ label2:	add t0, t0, t0
 ; inserido. Use %% para inserir um % (ou %25).
 msg:
 #Hello, World!%0a
+
+; Algumas diretivas são suportadas. As diretivas "bitsxx" criam números literais 
+; no código, com o tamanho em bits especificado:
+.bits8 0xca 0xfe 0xba 0xbe 0xde 0xad 0xbe 0xef
+.bits16 0xcafe 0xbabe 0xdead 0xbeef
+.bits32 0xcafebabe 0xdeadbeef
+.bits64 0xcafebabedeadbeef
+; A diretiva "space" adiciona alguns bytes de espaço vazio no código:
+.space 16
+; A diretiva "include" faz um "copia-cola" de outro arquivo no código:
+.include other-asm.asm
 ```
 
 Cada diretório de cada arquitetura possui programas Assembly de teste que podem
