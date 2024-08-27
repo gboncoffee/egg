@@ -1,11 +1,13 @@
-// Package egg/assembler implements a set of usefull functions and structs for
-// creating assemblers.
+// Package assembler implements a library for creating assemblers for the EGG
+// emulator.
 package assembler
 
 import (
+	"bufio"
 	"fmt"
-	"errors"
-	"strings"
+	"os"
+
+	"github.com/gboncoffee/intergo"
 )
 
 const (
@@ -15,221 +17,205 @@ const (
 	TOKEN_LITERAL
 )
 
-// Can be label, instruction, arg or literal.
+// This variable is a workaround between circular imports: ideally, we would
+// just use InterCtx, but we cannot import machine here as machine
+// already imports us. The main function will point this to the machine one.
+// Please don't touch.
+var InterCtx *intergo.InterContext
+
+// Can be a label, an instruction, an argument or a literal. All directives are
+// resolved in the tokenizer stage.
 type Token struct {
-	Type uint8
-	Value string
+	Line  int
+	File  *string
+	Type  int
+	Value []byte
 }
 
-// Token with resolved labels and arguments (only instructions have arguments).
-// Can only be instruction or literal.
-type ResolvedToken struct {
-	Type uint8
-	Size uint64
-	Value string
-	Args []uint64
-}
-
-// Token only for instructions. An array of DebuggerToken is passed to the
+// This token is specifically an instruction. An array of these is passed to the
 // debugger.
 type DebuggerToken struct {
+	Line        int
+	File        *string
 	Instruction string
-	Args string
-	Address uint64
-	Label string
+	Args        []string
+	Address     uint64
+	Label       string
 }
 
-// Creates an array of DebuggerToken when instructions have always a fixed size.
-func CreateDebugTokensFixedSize(tokens []Token, size uint64) []DebuggerToken {
-	var dt []DebuggerToken
-	addr := uint64(0)
-	var last_label string
-	var last_instruction *DebuggerToken
+// This kind of token can be only instructions and literals (only instructions
+// have arguments). Labels and arguments are already "resolved". The Reserved
+// field is reserved for architecture-specific use (example: storing information
+// regarding the addressing mode in 6502).
+type ResolvedToken struct {
+	Line     int
+	File     *string
+	Type     int
+	Address  uint64
+	Value    []byte
+	Args     []uint64
+	Reserved uintptr
+}
 
-	for _, t := range tokens {
-		switch t.Type {
+// For intermediate reasons.
+type Instruction struct {
+	Line     int
+	File     *string
+	Mnemonic string
+	Args     []string
+	Size     uint64
+	Reserved uintptr
+}
 
-		// I'm pretty sure the tokenizer cannot create an argument
-		// before an instruction so we just ignore it and let have an
-		// undefined behaviour if that happens.
-		case TOKEN_INSTRUCTION:
-			dt = append(dt, DebuggerToken{
-				Instruction: t.Value,
-				Address: addr,
-				Label: last_label,
-			})
-			addr += size
-			last_label = ""
-			last_instruction = &dt[len(dt)-1]
-		case TOKEN_ARG:
-			last_instruction.Args = last_instruction.Args + " " + t.Value
-		case TOKEN_LABEL:
-			last_label = t.Value
-		case TOKEN_LITERAL:
-			addr += uint64(len(t.Value))
-			last_label = ""
+// If the token is not a label, uses the provided function to translate it.
+func TranslateArgument(arg string, labels map[string]uint64, translateArg func(string) (uint64, error)) (uint64, error) {
+	value, hasLabel := labels[arg]
+	if !hasLabel {
+		var err error
+		value, err = translateArg(arg)
+		if err != nil {
+			return 0, err
 		}
 	}
 
-	return dt
+	return value, nil
 }
 
-// Function to pass to ResolveTokensFixedSize.
-type ArgTranslateFunction func(string) (uint64, error)
-
-// Resolves labels and arguments for fixed-size instructions with size bytes.
-// ArgTranslateFunction translates arguments into numbers. The arguments are
-// translating first resolving the labels, and them, if the argument is not a
-// label, calling ArgTranslateFunction with it. Labels are always changed by
-// their address, so the architeture-side should change it to an offset when
-// needed.
-func ResolveTokensFixedSize(tokens []Token, size uint64, arg ArgTranslateFunction) ([]ResolvedToken, error) {
+// "Resolve" tokens. The process callback can be used for basically anything,
+// but it MUST set the Size field. For example, it may remove parenthesis from
+// an argument when the architecture accepts them, and set something with the
+// Reserved field informing that the addressing mode of the instruction is XYZ.
+//
+// translateArg is passed directly to TranslateArgument.
+func ResolveTokens(tokens []Token, process func(*Instruction) error, translateArg func(string) (uint64, error)) ([]ResolvedToken, []DebuggerToken, error) {
+	resolvedTokens := []ResolvedToken{}
 	labels := make(map[string]uint64)
-	addr := uint64(0)
-	for _, t := range tokens {
-		switch (t.Type) {
-		case TOKEN_INSTRUCTION:
-			addr += size
-		case TOKEN_LITERAL:
-			addr += uint64(len(t.Value))
-		case TOKEN_LABEL:
-			labels[t.Value] = addr
-		}
-	}
+	reverseLabels := make(map[uint64]string)
+	address := uint64(0)
 
-	var rt []ResolvedToken
-	i := 0
+	// We use this so we can process everything and only after translate
+	// the arguments.
+	arguments := make(map[uint64][]string)
 
-	// I'm pretty sure the tokenizer cannot create an argument before an
-	// instruction so we just ignore it and let have an undefined behaviour
-	// if that happens.
-	for _, t := range tokens {
-		switch t.Type {
-		case TOKEN_INSTRUCTION:
-			rt = append(rt, ResolvedToken{
-				Type: TOKEN_INSTRUCTION,
-				Size: size,
-				Value: t.Value,
-			})
-			i++
-		case TOKEN_LITERAL:
-			rt = append(rt, ResolvedToken{
-				Type: TOKEN_LITERAL,
-				Size: uint64(len(t.Value)),
-				Value: t.Value,
-			})
-			i++
+	for i := 0; i < len(tokens); i++ {
+		token := &tokens[i]
+		switch token.Type {
+		// Token before instruction.
 		case TOKEN_ARG:
-			av, islabel := labels[t.Value]
-			if !islabel {
-				var err error
-				av, err = arg(t.Value)
-				if err != nil {
-					return nil, fmt.Errorf("cannot resolve argument: %v", err)
-				}
+			panic(InterCtx.Get("If you're reading this, there's a bug in the emulator. Please fill an issue at https://github.com/gboncoffee/egg reporting the bug with the Assembly you're trying to run and command line arguments you used to run EGG."))
+		case TOKEN_LABEL:
+			labels[string(token.Value)] = address
+			reverseLabels[address] = string(token.Value)
+		case TOKEN_LITERAL:
+			resolvedTokens = append(resolvedTokens, ResolvedToken{
+				Line:    token.Line,
+				File:    token.File,
+				Type:    TOKEN_LITERAL,
+				Address: address,
+				Value:   token.Value,
+			})
+			address += uint64(len(token.Value))
+		case TOKEN_INSTRUCTION:
+			instruction := Instruction{
+				Line:     token.Line,
+				File:     token.File,
+				Mnemonic: string(token.Value),
+				Args:     []string{},
 			}
 
-			rt[i - 1].Args = append(rt[i - 1].Args, av)
-		}
-	}
-
-	return rt, nil
-}
-
-func getHexNumber(r rune) (uint8, error) {
-	if 0x30 <= r && r <= 0x39 {
-		return uint8(r - 0x30), nil
-	} else if 0x41 <= r && r <= 0x46 {
-		return uint8(r - 0x37), nil
-	} else if 0x61 <= r && r <= 0x66 {
-		return uint8(r - 0x57), nil
-	} else {
-		return 0, errors.New("malformed hex number")
-	}
-}
-
-// Parses everything cleanly excepts that any % followed by a two-digit hex
-// number (e.g., %FA) in substituted by it's own value. Use %% for a literal %.
-// Trailing % are also inserted.
-func ParseLiteral(lit string) string {
-	var b strings.Builder
-	i := 0
-	for i < len(lit) {
-		if lit[i] == '%' {
-			if i + 1 < len(lit) && lit[i + 1] == '%' {
-				b.WriteRune('%')
-				i += 2
-			} else if i + 2 < len(lit) {
-				b2, err := getHexNumber(rune(lit[i + 1]))
-				if err != nil {
-					b.WriteRune('%')
-					i++
-					continue
-				}
-				b1, err := getHexNumber(rune(lit[i + 2]))
-				if err != nil {
-					b.WriteRune('%')
-					i++
-					continue
-				}
-				b.WriteRune(rune(b1 | (b2 << 4)))
-				i += 3
-			} else {
-				b.WriteRune('%')
+			// Squeeze all arguments into the Intruction variable.
+			i++
+			for i < len(tokens) && tokens[i].Type == TOKEN_ARG {
+				instruction.Args = append(instruction.Args, string(tokens[i].Value))
 				i++
 			}
-		} else {
-			b.WriteRune(rune(lit[i]))
-			i++
+			i--
+
+			if err := process(&instruction); err != nil {
+				return nil, nil, err
+			}
+
+			// Finally create a proper token and append it. The arguments are
+			// going to be treated only after we finish with all labels, of
+			// course.
+			resolvedTokens = append(resolvedTokens, ResolvedToken{
+				Line:     instruction.Line,
+				File:     instruction.File,
+				Type:     TOKEN_INSTRUCTION,
+				Value:    []byte(instruction.Mnemonic),
+				Address:  address,
+				Reserved: instruction.Reserved,
+			})
+
+			arguments[address] = instruction.Args
+			address += instruction.Size
 		}
 	}
-	return b.String()
-}
 
-// Tokenize uses a very standard Assembly syntax to create a token array:
-// - Define labels with :
-// - Arguments are separated by ,
-// - Comments start with ; and go to the end of the line
-// - Literals must be placed in lines beggining with # and are parsed by ParseLiteral
-func Tokenize(asm string) []Token {
-	var tokens []Token
-	// This handles trailing newlines and carriage returns ;).
-	for _, line := range strings.Split(strings.TrimRight(asm, "\n"), "\n") {
-		if len(line) == 0 {
-			continue
-		}
-		if line[0] == '#' {
-			tokens = append(tokens, Token{Type: TOKEN_LITERAL, Value: ParseLiteral(line[1:])})
-			continue
-		}
-		uncommented, _, _ := strings.Cut(line, ";")
-		uncommented = strings.TrimSpace(uncommented)
-		if len(uncommented) == 0 {
-			continue
-		}
+	// Now that we have all labels, we can treat the arguments. We also create
+	// the debugger tokens.
+	debuggerTokens := []DebuggerToken{}
+	for i := 0; i < len(resolvedTokens); i++ {
+		token := &resolvedTokens[i]
+		if token.Type == TOKEN_INSTRUCTION {
+			args, ok := arguments[token.Address]
+			if !ok {
+				panic(InterCtx.Get("If you're reading this, there's a bug in the emulator. Please fill an issue at https://github.com/gboncoffee/egg reporting the bug with the Assembly you're trying to run and command line arguments you used to run EGG."))
+			}
 
-		label, ins, has_label := strings.Cut(uncommented, ":")
-		if !has_label {
-			ins = label
-		} else {
-			tokens = append(tokens, Token{Type: TOKEN_LABEL, Value: label})
-		}
+			debuggerTokens = append(debuggerTokens, DebuggerToken{
+				Line:        token.Line,
+				File:        token.File,
+				Instruction: string(token.Value),
+				Args:        args,
+				Address:     token.Address,
+				Label:       reverseLabels[token.Address],
+			})
 
-		ins = strings.TrimSpace(ins)
-		if len(ins) == 0 {
-			continue
-		}
-
-		mne, args, has_mne := strings.Cut(ins, " ")
-		// We already trimmed it so there's no way mne == "".
-		tokens = append(tokens, Token{Type: TOKEN_INSTRUCTION, Value: mne})
-		if has_mne {
-			for _, arg := range strings.Split(args, ",") {
-				arg = strings.TrimSpace(arg)
-				tokens = append(tokens, Token{Type: TOKEN_ARG, Value: arg})
+			for _, arg := range args {
+				result, err := TranslateArgument(arg, labels, translateArg)
+				if err != nil {
+					return nil, nil, fmt.Errorf(InterCtx.Get("%v:%v: Error on argument translation: %v"), *token.File, token.Line, err)
+				}
+				token.Args = append(token.Args, result)
 			}
 		}
 	}
 
-	return tokens
+	return resolvedTokens, debuggerTokens, nil
+}
+
+// Tokenize recursively (as of .include directives) creates a Token array from
+// file names. I.e., it opens and reads the passed file, opening and reading
+// other files when reaching a .include.
+func Tokenize(fileName string, tokens *[]Token) error {
+	// Private functions used here are defined in tokenizer.go for the sake
+	// of organization.
+
+	file, err := os.Open(fileName)
+	if err != nil {
+		return fmt.Errorf(InterCtx.Get("couldn't open file: %v"), err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+
+	// This reads line by line. The i is necessary so we actually knows where
+	// we're in the file.
+	i := 1
+	for scanner.Scan() {
+		line := scanner.Text()
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf(InterCtx.Get("error reading file %v: %v"), fileName, err)
+		}
+
+		err = parseLine(&fileName, &line, i, tokens)
+		if err != nil {
+			return err
+		}
+
+		i++
+	}
+
+	return nil
 }

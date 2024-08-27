@@ -8,13 +8,14 @@ import (
 	"log"
 	"os"
 
+	"github.com/gboncoffee/egg/assembler"
 	"github.com/gboncoffee/egg/machine"
 	"github.com/gboncoffee/egg/mips"
 	"github.com/gboncoffee/egg/riscv"
 	"github.com/gboncoffee/egg/sagui"
 )
 
-const VERSION = "2.4.3"
+const VERSION = "3.0.0rc"
 
 // Put new architetures here... (main.go:/switch architeture)
 func listArchs() {
@@ -58,15 +59,6 @@ func runMachine(m machine.Machine) {
 	}
 }
 
-func readToString(filename string) (string, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return "", err
-	}
-
-	return string(data), nil
-}
-
 func main() {
 	var architeture string
 	var debug bool
@@ -77,6 +69,7 @@ func main() {
 	machine.InterCtx.Init()
 	machine.InterCtx.AddLocale("pt_BR", brazilian)
 	machine.InterCtx.AutoSetPreferedLocale()
+	assembler.InterCtx = &machine.InterCtx
 
 	log.SetFlags(0)
 
@@ -125,15 +118,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	asm, err := readToString(file)
+	code, sym, err := m.Assemble(file)
 	if err != nil {
-		log.Printf(machine.InterCtx.Get("Could not read supplied file %v\n"), file)
-		os.Exit(1)
-	}
-
-	code, sym, err := m.Assemble(asm)
-	if err != nil {
-		log.Printf(machine.InterCtx.Get("Error assembling file %v: %v\n"), file, err)
+		log.Println(err)
 		os.Exit(1)
 	}
 

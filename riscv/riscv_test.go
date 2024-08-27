@@ -1,10 +1,12 @@
 package riscv
 
 import (
-	"testing"
 	"math"
 	"reflect"
-	_ "embed"
+	"testing"
+
+	"github.com/gboncoffee/egg/assembler"
+	"github.com/gboncoffee/intergo"
 )
 
 func TestRegister(t *testing.T) {
@@ -53,7 +55,7 @@ func TestMem(t *testing.T) {
 		t.Fatalf("Error getting addr %v: %v - %v", math.MaxUint32, err, v)
 	}
 
-	err = m.SetMemory(math.MaxUint32 + 1, 39)
+	err = m.SetMemory(math.MaxUint32+1, 39)
 	if err == nil {
 		t.Fatalf("Did not failed in trying to set more than %v", math.MaxUint32)
 	}
@@ -78,33 +80,36 @@ func TestChunkedMem(t *testing.T) {
 		t.Fatalf("Error getting addr 0: %v - %v", err, v)
 	}
 
-	err = m.SetMemoryChunk(math.MaxUint32 - 2, arr)
+	err = m.SetMemoryChunk(math.MaxUint32-2, arr)
 	if err != nil {
 		t.Fatalf("Error setting addr %v: %v", math.MaxUint32, err)
 	}
 
-	v, err = m.GetMemoryChunk(math.MaxUint32 - 2, 3)
+	v, err = m.GetMemoryChunk(math.MaxUint32-2, 3)
 	if err != nil || !reflect.DeepEqual(v, arr) {
 		t.Fatalf("Error getting addr %v: %v - %v", math.MaxUint32, err, v)
 	}
 
-	err = m.SetMemoryChunk(math.MaxUint32 - 1, arr)
+	err = m.SetMemoryChunk(math.MaxUint32-1, arr)
 	if err == nil {
 		t.Fatalf("Did not failed in trying to set more than %v", math.MaxUint32)
 	}
 
-	v, err = m.GetMemoryChunk(math.MaxUint32 - 1, 3)
+	v, err = m.GetMemoryChunk(math.MaxUint32-1, 3)
 	if err == nil {
 		t.Fatalf("Did not failed in trying to set more than %v: %v", math.MaxUint32, v)
 	}
 }
 
-//go:embed test.asm
-var asm string
-
 func TestAssembler(t *testing.T) {
+
+	// We must setup the interctx so it does not panics with nil pointer
+	// dereferencing. Of course let's not bother with the languages.
+	assembler.InterCtx = &intergo.InterContext{}
+	assembler.InterCtx.Init()
+
 	var m RiscV
-	code, _, err := m.Assemble(asm)
+	code, _, err := m.Assemble("test.asm")
 	if err != nil {
 		t.Fatalf("Assembling failed with '%v'", err)
 	}
@@ -174,23 +179,20 @@ func TestAssembler(t *testing.T) {
 	}
 
 	for i := 0; i < len(correctCode); i++ {
-		asmi := uint32(code[i * 4])
-		asmi = asmi | uint32(code[i * 4 + 1]) << 8
-		asmi = asmi | uint32(code[i * 4 + 2]) << 16
-		asmi = asmi | uint32(code[i * 4 + 3]) << 24
+		asmi := uint32(code[i*4])
+		asmi = asmi | uint32(code[i*4+1])<<8
+		asmi = asmi | uint32(code[i*4+2])<<16
+		asmi = asmi | uint32(code[i*4+3])<<24
 		if asmi != correctCode[i] {
 			t.Logf("Byte 0: %x Byte 1: %x Byte 2: %x Byte 3: %x",
-				code[i * 4],
-				code[i * 4 + 1],
-				code[i * 4 + 2],
-				code[i * 4 + 3])
-			t.Fatalf("Incorrect instruction: %x (expected %x) at address %x", asmi, correctCode[i], i * 4)
+				code[i*4],
+				code[i*4+1],
+				code[i*4+2],
+				code[i*4+3])
+			t.Fatalf("Incorrect instruction: %x (expected %x) at address %x", asmi, correctCode[i], i*4)
 		}
 	}
 }
-
-//go:embed test-instructions.asm
-var inst string
 
 func (m *RiscV) getByName(n string) uint64 {
 	r, _ := m.GetRegisterNumber(n)
@@ -208,7 +210,7 @@ func (m *RiscV) assertRegister(t *testing.T, v string, r uint64, s string) {
 func (m *RiscV) ensureBranch(t *testing.T, i string) {
 	pc := m.pc
 	m.NextInstruction()
-	if pc == m.pc - 4 {
+	if pc == m.pc-4 {
 		t.Fatalf("%s didn't branch correctly: %d", i, m.pc)
 	}
 }
@@ -216,7 +218,7 @@ func (m *RiscV) ensureBranch(t *testing.T, i string) {
 func (m *RiscV) ensureDontBranch(t *testing.T, i string) {
 	pc := m.pc
 	m.NextInstruction()
-	if pc != m.pc - 4 {
+	if pc != m.pc-4 {
 		t.Fatalf("%s didn't pass correctly: %x", i, m.pc)
 	}
 }
@@ -224,7 +226,7 @@ func (m *RiscV) ensureDontBranch(t *testing.T, i string) {
 func TestInstructions(t *testing.T) {
 
 	var m RiscV
-	code, _, err := m.Assemble(inst)
+	code, _, err := m.Assemble("test-instructions.asm")
 	if err != nil {
 		t.Fatalf("Couldn't assemble: %v", err)
 	}
@@ -346,11 +348,11 @@ func TestInstructions(t *testing.T) {
 	//
 	ret := m.pc
 	m.NextInstruction()
-	if m.pc == ret + 4 {
+	if m.pc == ret+4 {
 		t.Fatalf("jal does not jump correctly")
 	}
 	m.NextInstruction()
-	if m.pc != ret + 4 {
+	if m.pc != ret+4 {
 		t.Fatalf("jalr does not return correctly")
 	}
 
@@ -408,7 +410,7 @@ func TestInstructions(t *testing.T) {
 	m.assertRegister(t, "t0", 0xaaaaa000, "lui t0, 0xaaaaa")
 	pc := m.pc
 	m.NextInstruction()
-	m.assertRegister(t, "t0", uint64(0xaaaaa000 + pc), "auipc t0, 0xaaaaa")
+	m.assertRegister(t, "t0", uint64(0xaaaaa000+pc), "auipc t0, 0xaaaaa")
 
 	//
 	// Multiplication extension.

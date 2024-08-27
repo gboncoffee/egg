@@ -207,7 +207,7 @@ func (m *RiscV) execArithmetic(rd uint8, rs1 uint8, rs2 uint8, func3 uint8, func
 		case 0x5:
 			if func7 == 0x20 {
 				if rs2v < 0 {
-					return fmt.Errorf("error executing sra: negative shift amount")
+					return errors.New(machine.InterCtx.Get("error executing sra: negative shift amount"))
 				}
 				r = rs1v >> rs2v
 			} else {
@@ -538,7 +538,7 @@ func assembleArithmetic(t assembler.ResolvedToken) (uint32, error) {
 
 	func3 := uint32(0) // add and sub
 	var func7 uint32
-	switch t.Value {
+	switch string(t.Value) {
 	case "sub":
 		func7 = 0x20
 	// Avoid running the multiplication part.
@@ -565,7 +565,7 @@ func assembleArithmetic(t assembler.ResolvedToken) (uint32, error) {
 	default:
 		func7 = 1
 		// 0 is mul.
-		switch t.Value {
+		switch string(t.Value) {
 		case "mulh":
 			func3 = 1
 		case "mulsu":
@@ -600,7 +600,7 @@ func assembleArithmeticImm(t assembler.ResolvedToken) (uint32, error) {
 	code = code | uint32(t.Args[2]<<20)
 
 	func3 := uint32(0) // addi
-	switch t.Value {
+	switch string(t.Value) {
 	case "xori":
 		func3 = 4
 	case "ori":
@@ -636,7 +636,7 @@ func assembleLoad(t assembler.ResolvedToken) (uint32, error) {
 	code = code | uint32(t.Args[2]<<20)
 
 	func3 := uint32(0) // lb
-	switch t.Value {
+	switch string(t.Value) {
 	case "lh":
 		func3 = 1
 	case "lw":
@@ -664,7 +664,7 @@ func assembleStore(t assembler.ResolvedToken) (uint32, error) {
 	code = code | uint32((t.Args[2] & 0b111111100000 << 20))
 
 	func3 := uint32(0) // sb
-	switch t.Value {
+	switch string(t.Value) {
 	case "sh":
 		func3 = 1
 	case "sw":
@@ -692,7 +692,7 @@ func assembleBranch(t assembler.ResolvedToken, addr int) (uint32, error) {
 	code = code | uint32((t.Args[2]&0b11111100000)<<20)
 
 	func3 := uint32(0) // beq
-	switch t.Value {
+	switch string(t.Value) {
 	case "bne":
 		func3 = 1
 	case "blt":
@@ -746,7 +746,7 @@ func assembleU(t assembler.ResolvedToken) (uint32, error) {
 	}
 
 	var code uint32
-	if t.Value == "lui" {
+	if string(t.Value) == "lui" {
 		code = 0b0110111
 	} else {
 		code = 0b0010111
@@ -763,7 +763,7 @@ func assembleCall(t assembler.ResolvedToken) (uint32, error) {
 	}
 
 	code := uint32(0b1110011)
-	if t.Value == "ebreak" {
+	if string(t.Value) == "ebreak" {
 		code = code | (1 << 20)
 	}
 
@@ -774,7 +774,7 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	bin := uint32(0)
 	var err error
 
-	switch t.Value {
+	switch string(t.Value) {
 	case "add", "sub", "xor", "or", "and", "sll", "srl", "sra", "slt", "sltu", "mul", "mulh", "mulsu", "mulu", "div", "divu", "rem", "remu":
 		bin, err = assembleArithmetic(t)
 	case "addi", "xori", "ori", "andi", "slli", "srli", "srai", "slti", "sltiu":
@@ -794,7 +794,7 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	case "ecall", "ebreak":
 		bin, err = assembleCall(t)
 	default:
-		return fmt.Errorf(machine.InterCtx.Get("unknown instruction: %v"), t.Value)
+		return fmt.Errorf(machine.InterCtx.Get("unknown instruction: %v"), string(t.Value))
 	}
 
 	if err != nil {
@@ -813,7 +813,11 @@ func assemble(t []assembler.ResolvedToken) ([]uint8, error) {
 	// Pre calculate our size. Why not?
 	size := uint64(0)
 	for _, i := range t {
-		size += i.Size
+		if i.Type == assembler.TOKEN_INSTRUCTION {
+			size += 4
+		} else {
+			size += uint64(len(i.Value))
+		}
 	}
 
 	var err error
@@ -824,7 +828,7 @@ func assemble(t []assembler.ResolvedToken) ([]uint8, error) {
 		if i.Type == assembler.TOKEN_INSTRUCTION {
 			err = assembleInstruction(code, addr, i)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf(machine.InterCtx.Get("%v:%v: Error assembling: %v"), *i.File, i.Line, err)
 			}
 			addr += 4
 		} else {
@@ -907,20 +911,28 @@ func (m *RiscV) GetRegisterNumber(r string) (uint64, error) {
 	return reg, nil
 }
 
-func (m *RiscV) Assemble(asm string) ([]uint8, []assembler.DebuggerToken, error) {
-	tokens := assembler.Tokenize(asm)
-	rt, err := assembler.ResolveTokensFixedSize(tokens, 4, translateArgs)
+func (m *RiscV) Assemble(file string) ([]uint8, []assembler.DebuggerToken, error) {
+	tokens := []assembler.Token{}
+	err := assembler.Tokenize(file, &tokens)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	symbs := assembler.CreateDebugTokensFixedSize(tokens, 4)
-	code, err := assemble(rt)
+	resolvedTokens, debuggerTokens, err := assembler.ResolveTokens(tokens, func(i *assembler.Instruction) error {
+		i.Size = 4
+		return nil
+	}, translateArgs)
+
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return code, symbs, nil
+	code, err := assemble(resolvedTokens)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return code, debuggerTokens, nil
 }
 
 func (m *RiscV) GetCurrentInstructionAddress() uint64 {
