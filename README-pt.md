@@ -33,7 +33,8 @@ Baixe o binário estático para o seu sistema na página de
 compilador de Go instalado, baixe e compile o projeto.
 
 Nota: o binário para Windows não foi testado. Não tenho acesso a nenhuma máquina
-Windows atualmente.
+Windows atualmente. O teste do binário para Darwin (MacOS) depende da minha
+paciência.
 
 ## Uso
 

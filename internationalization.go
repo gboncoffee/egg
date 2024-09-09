@@ -161,9 +161,11 @@ No comando print, <addr>#tamanho significa "tantas instruções após addr".
 `,
 	// Debugger functions.
 	"cannot parse %v as number: %v":                                        "impossível converter %v para número",
+	"cannot parse %v as number: %v\n":                                      "impossível converter %v para número\n",
 	"length not supplied":                                                  "tamanho não providenciado",
 	"cannot parse %v as address":                                           "impossível converter %v para endereço",
 	"%v is not a number":                                                   "%v não é um número",
+	"%v is not an unsigned number":                                         "%v não é um número sem sinal",
 	"no instruction at address 0x%x":                                       "nenhuma instrução no endereço 0x%x",
 	"%v is not a register or address":                                      "%v não é um registrador ou endereço",
 	"cannot get memory content: %v":                                        "não foi possível ler o conteúdo da memória: %v",
@@ -204,11 +206,11 @@ No comando print, <addr>#tamanho significa "tantas instruções após addr".
 	"Stopped at breakpoint: %v\n":   "Parado no ponto (breakpoint): %v\n",
 	"New breakpoint %v\n":           "Novo ponto de parada (breakpoint) %v\n",
 	"remove expects a breakpoint to remove: remove <address/label/file:line>": "remove necessita de um ponto (breakpoint) para remover: remove <endereço/etiqueta/arquivo:linha>",
-	"No breakpoint %v\n": "Nenhum ponto de parada (breakpoint) %v\n",
-	"Error assembling file:": "Erro montando arquivo:",
+	"No breakpoint %v\n":                     "Nenhum ponto de parada (breakpoint) %v\n",
+	"Error assembling file:":                 "Erro montando arquivo:",
 	"Keeping old program and program state.": "Mantendo o programa e estado anteriores",
-	"Error loading new assembled code:": "Erro carregando o novo código montado:",
-	"Rebuild Assembly.": "Assembly remontado.",
+	"Error loading new assembled code:":      "Erro carregando o novo código montado:",
+	"Rebuild Assembly.":                      "Assembly remontado.",
 
 	//
 	// assembler.go and tokenizer.go

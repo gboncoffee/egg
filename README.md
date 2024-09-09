@@ -34,7 +34,8 @@ Simply grab the static binary for your OS at the
 Go compiler, build the project from source.
 
 Note: the Windows binary is untested, as I don't have access to any Windows
-machine nowadays.
+machine nowadays. The testing of the Darwin (MacOS) binary depends on my
+patience.
 
 ## Quickstart
 
