@@ -7,11 +7,7 @@
 
 [Video tutorial](https://youtu.be/RtKvvXgdVak?si=OtjkNxSGmRGNou67)
 
-[Documentation for RISC-V](riscv-doc.md)
-
-[Documentation for MIPS](mips-doc.md)
-
-[Documentation for Sagui](sagui-doc.md)
+[Documentation](https://egg.gboncoffee.dev.br/docs/en)
 
 [Contributing, bugs, feature requests](CONTRIBUTING.md)
 

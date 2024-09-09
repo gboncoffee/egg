@@ -7,13 +7,7 @@
 
 [Tutorial em Vídeo (legendado)](https://youtu.be/RtKvvXgdVak?si=OtjkNxSGmRGNou67)
 
-[Documentação para RISC-V](riscv-doc-pt.md)
-
-[RISC-V Cheatsheet](riscv/cheatsheet-pt.md)
-
-[Documentação para MIPS](mips-doc-pt.md)
-
-[Documentação para Sagui](sagui-doc-pt.md)
+[Documentação](https://egg.gboncoffee.dev.br/docs/pt)
 
 [Contribuindo, bugs, requisição de features](CONTRIBUINDO.md)
 
