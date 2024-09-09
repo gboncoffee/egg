@@ -97,7 +97,7 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 
 		l, err = strconv.ParseUint(sn, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("cannot parse %v as number: %v"), sn, err)
+			return nil, fmt.Errorf(machine.InterCtx.Get("cannot parse %v as unsigned number: %v"), sn, err)
 		}
 
 		faddr = m.GetCurrentInstructionAddress()
@@ -115,7 +115,7 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 
 		l, err = strconv.ParseUint(sn, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), sn)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), sn)
 		}
 	}
 
@@ -149,7 +149,7 @@ func getMemoryContentPrint(m machine.Machine, addr string, length string) ([]uin
 
 	l, err := strconv.ParseUint(length, 0, 64)
 	if err != nil {
-		return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), length)
+		return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), length)
 	}
 
 	mem, err := m.GetMemoryChunk(a, l)
@@ -221,13 +221,13 @@ func printExpr(m machine.Machine, expr string, info *machine.ArchitectureInfo) {
 		// Not very pretty but (mostly) does the job.
 		switch info.WordWidth {
 		case 8:
-			fmt.Printf("0x%02x\n", c)
+			fmt.Printf("0x%02x (%d)\n", c, int8(c))
 		case 16:
-			fmt.Printf("0x%04x\n", c)
+			fmt.Printf("0x%04x (%d)\n", c, int16(c))
 		case 32:
-			fmt.Printf("0x%08x\n", c)
+			fmt.Printf("0x%08x (%d)\n", c, int32(c))
 		default:
-			fmt.Printf("0x%016x\n", c)
+			fmt.Printf("0x%016x (%d)\n", c, int64(c))
 		}
 		return
 	}
@@ -530,12 +530,12 @@ func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) 
 
 		of, err := strconv.ParseUint(offset, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), offset)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), offset)
 		}
 
 		l, err := strconv.ParseUint(length, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), length)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), length)
 		}
 
 		end := of + l
@@ -555,11 +555,11 @@ func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) 
 
 		ad, err := strconv.ParseUint(addr, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), addr)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), addr)
 		}
 		l, err := strconv.ParseUint(length, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), length)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), length)
 		}
 
 		mem, err := m.GetMemoryChunk(ad, l)
@@ -660,7 +660,7 @@ func getSetExpr(m machine.Machine, expr string) (uint64, uint64, error) {
 
 	l, err := strconv.ParseUint(length, 0, 64)
 	if err != nil {
-		return 0, 0, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), length)
+		return 0, 0, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), length)
 	}
 
 	return a, l, nil
@@ -678,14 +678,14 @@ func debuggerSet(m machine.Machine, args []string) {
 		return
 	}
 
-	value, err := strconv.ParseUint(args[1], 0, 64)
+	value, err := strconv.ParseInt(args[1], 0, 64)
 	if err != nil {
-		fmt.Printf(machine.InterCtx.Get("Cannot parse %v as number: %v"), args[1], err)
+		fmt.Printf(machine.InterCtx.Get("Cannot parse %v as number: %v\n"), args[1], err)
 		return
 	}
 
 	if length == 0 {
-		err := m.SetRegister(addr, value)
+		err := m.SetRegister(addr, uint64(value))
 		if err != nil {
 			fmt.Printf(machine.InterCtx.Get("Error while changing register content: %v\n"), err)
 		}
