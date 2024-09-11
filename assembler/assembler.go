@@ -26,21 +26,21 @@ var InterCtx *intergo.InterContext
 // Can be a label, an instruction, an argument or a literal. All directives are
 // resolved in the tokenizer stage.
 type Token struct {
-	Line  int
 	File  *string
-	Type  int
 	Value []byte
+	Line  int
+	Type  int
 }
 
 // This token is specifically an instruction. An array of these is passed to the
 // debugger.
 type DebuggerToken struct {
-	Line        int
-	File        *string
 	Instruction string
+	Label       string
+	File        *string
 	Args        []string
 	Address     uint64
-	Label       string
+	Line        int
 }
 
 // This kind of token can be only instructions and literals (only instructions
@@ -48,22 +48,22 @@ type DebuggerToken struct {
 // field is reserved for architecture-specific use (example: storing information
 // regarding the addressing mode in 6502).
 type ResolvedToken struct {
-	Line     int
 	File     *string
-	Type     int
-	Address  uint64
-	Value    []byte
 	Args     []uint64
+	Value    []byte
+	Address  uint64
+	Line     int
+	Type     int
 	Reserved uintptr
 }
 
 // For intermediate reasons.
 type Instruction struct {
-	Line     int
-	File     *string
 	Mnemonic string
+	File     *string
 	Args     []string
 	Size     uint64
+	Line     int
 	Reserved uintptr
 }
 

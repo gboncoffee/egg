@@ -19,10 +19,10 @@ import (
 type Breakpoint struct {
 	// nil if no file.
 	File *string
-	// This is only valid if File is non-nil, of course.
-	Line int
 	// Empty if no label
 	Label string
+	// This is only valid if File is non-nil, of course.
+	Line int
 	// This one always exists.
 	Address uint64
 }
@@ -390,7 +390,6 @@ func parseBreakpoint(arg string, sym []assembler.DebuggerToken) (Breakpoint, err
 					}
 				}
 			}
-
 		}
 	}
 
