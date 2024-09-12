@@ -19,6 +19,8 @@ Bem, muito obrigado! A base de código é bem simples e navegável. Divirta-se, 
 se tiver alguma dúvida,
 [crie uma issue](https://github.com/gboncoffee/egg/issues).
 
+Para contribuir com código, abra uma pull request!
+
 ## Adicionando backends
 
 Crie um novo pacote Go no diretório do projeto. Por exemplo, vamos adicionar um
