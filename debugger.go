@@ -14,63 +14,35 @@ import (
 	"github.com/gboncoffee/egg/machine"
 )
 
+// TODO: information on every sysbreak/breakpoint operation.
+
+type Breakpoint struct {
+	// nil if no file.
+	File *string
+	// Empty if no label
+	Label string
+	// This is only valid if File is non-nil, of course.
+	Line int
+	// This one always exists.
+	Address uint64
+}
+
+func breakpoint2String(breakpoint Breakpoint) string {
+	var s strings.Builder
+	if breakpoint.File != nil {
+		s.WriteString(*breakpoint.File)
+		s.WriteString(fmt.Sprintf(":%v ", breakpoint.Line))
+	}
+	if breakpoint.Label != "" {
+		s.WriteString(fmt.Sprintf(machine.InterCtx.Get("(Label %v) "), breakpoint.Label))
+	}
+	s.WriteString(fmt.Sprintf("0x%x", breakpoint.Address))
+
+	return s.String()
+}
+
 func debuggerHelp() {
-	help := machine.InterCtx.Get(`Commands:
-
-help
-	Shows this help.
-	Shortcut: h
-print <expr>[@<length>]
-	Prints the content of registers and memory.
-	Shortcut: p
-printall
-	Prints the content of all registers.
-	Shortcut: pall
-next
-	Executes the next instruction, then pauses.
-	Shortcut: n
-continue
-	Continue execution until a BREAK call or breakpoint.
-	Shortcut: c
-break [expr]
-	With an argument, creates a new breakpoint. With no argument, shows all
-	breakpoints. Accepts numbers and Assembly labels.
-	Shortcut: b
-remove <expr>
-	Removes a breakpoint. Accepts numbers and Assembly labels.
-	Shortcut: r
-dump <address>@<length> <filename>
-	Dumps the content of memory to a file.
-	Shortcut: d
-rewind
-	Reloads the machine, i.e., asks it to return to it's original state.
-	Shortcut: rew
-set <expr>[@<length>] <content>
-	Changes the content of a register or memory.
-	Shortcut: s
-exit
-	Terminate debugging session.
-	Shortcut: e
-quit
-	Alias to exit.
-	Shortcut: q
-
-The print command generally follows this rules:
-- If the expression is only a register (e.g., x1, t1, zero, ra, etc), it prints
-  it's contents;
-- If the expression is a register with a length (e.g., t1@1, ra@7, etc), it
-  prints the content of the memory addressed by the content of the register.
-The set command works the same way.
-
-The dump command also accepts registers, but always dereference them.
-
-Both print and dump commands accepts the special expression #, which means the
-program itself. For example, you may dump the assembled program to a file by
-running 'dump # file'.
-
-In the print command, <addr>#<length> means "length instructions after addr".
-#<length> is a shortcut to use with the current instruction address.
-`)
+	help := machine.InterCtx.Get(MASSIVE_HELP_STRING)
 	fmt.Print(help)
 }
 
@@ -80,6 +52,7 @@ func tokensToString(sym []assembler.DebuggerToken, info *machine.ArchitectureInf
 	for i, tok := range sym {
 		var build strings.Builder
 
+		build.WriteString(fmt.Sprintf("%v:%v: ", *tok.File, tok.Line))
 		switch info.WordWidth {
 		case 8:
 			build.WriteString(fmt.Sprintf("0x%02x: ", tok.Address))
@@ -98,7 +71,10 @@ func tokensToString(sym []assembler.DebuggerToken, info *machine.ArchitectureInf
 		}
 		build.WriteString(tok.Instruction)
 		build.WriteRune(' ')
-		build.WriteString(tok.Args)
+		for _, arg := range tok.Args {
+			build.WriteString(arg)
+			build.WriteRune(' ')
+		}
 		str[i] = build.String()
 	}
 
@@ -121,7 +97,7 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 
 		l, err = strconv.ParseUint(sn, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("cannot parse %v as number: %v"), sn, err)
+			return nil, fmt.Errorf(machine.InterCtx.Get("cannot parse %v as unsigned number: %v"), sn, err)
 		}
 
 		faddr = m.GetCurrentInstructionAddress()
@@ -139,7 +115,7 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 
 		l, err = strconv.ParseUint(sn, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), sn)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), sn)
 		}
 	}
 
@@ -173,12 +149,12 @@ func getMemoryContentPrint(m machine.Machine, addr string, length string) ([]uin
 
 	l, err := strconv.ParseUint(length, 0, 64)
 	if err != nil {
-		return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), length)
+		return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), length)
 	}
 
 	mem, err := m.GetMemoryChunk(a, l)
 	if err != nil {
-		return nil, fmt.Errorf(machine.InterCtx.Get("cannot get memory content: %v"), err)
+		return nil, err
 	}
 
 	// I hope this is somehow "optimized out" to a simple padded copy.
@@ -245,13 +221,13 @@ func printExpr(m machine.Machine, expr string, info *machine.ArchitectureInfo) {
 		// Not very pretty but (mostly) does the job.
 		switch info.WordWidth {
 		case 8:
-			fmt.Printf("0x%02x\n", c)
+			fmt.Printf("0x%02x (%d)\n", c, int8(c))
 		case 16:
-			fmt.Printf("0x%04x\n", c)
+			fmt.Printf("0x%04x (%d)\n", c, int16(c))
 		case 32:
-			fmt.Printf("0x%08x\n", c)
+			fmt.Printf("0x%08x (%d)\n", c, int32(c))
 		default:
-			fmt.Printf("0x%016x\n", c)
+			fmt.Printf("0x%016x (%d)\n", c, int64(c))
 		}
 		return
 	}
@@ -366,7 +342,61 @@ func debuggerNext(m machine.Machine, sym []assembler.DebuggerToken, in *bufio.Re
 	return printRegisters(m, info, regs)
 }
 
-func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoints []uint64, in *bufio.Reader, info *machine.ArchitectureInfo, regs []uint64) []uint64 {
+func parseBreakpoint(arg string, sym []assembler.DebuggerToken) (Breakpoint, error) {
+	// Try to parse it as address.
+	value, err := strconv.ParseUint(arg, 0, 64)
+	if err == nil {
+		// In this case, the address has a symbol.
+		for _, symb := range sym {
+			if symb.Address == value {
+				return Breakpoint{
+					Address: value,
+					File:    symb.File,
+					Line:    symb.Line,
+					Label:   symb.Label,
+				}, nil
+			}
+		}
+		// Here it does not.
+		return Breakpoint{Address: value}, nil
+	} else {
+		// Ok, let's se if it's file:line instead.
+		file, lineAsString, isFileLine := strings.Cut(arg, ":")
+		line, err := strconv.ParseUint(lineAsString, 0, 64)
+		if isFileLine && err == nil {
+			// Search by line first as integer comparison is cheaper than
+			// string.
+			for _, symb := range sym {
+				if uint64(symb.Line) == line && *symb.File == file {
+					return Breakpoint{
+						Address: symb.Address,
+						File:    symb.File,
+						Line:    symb.Line,
+						Label:   symb.Label,
+					}, nil
+				}
+			}
+		} else {
+			// Ok, so it must be a label.
+			if len(arg) > 0 {
+				for _, symb := range sym {
+					if symb.Label == arg {
+						return Breakpoint{
+							Address: symb.Address,
+							File:    symb.File,
+							Line:    symb.Line,
+							Label:   symb.Label,
+						}, nil
+					}
+				}
+			}
+		}
+	}
+
+	return Breakpoint{}, fmt.Errorf(machine.InterCtx.Get("cannot parse %v as breakpoint"), arg)
+}
+
+func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoints []Breakpoint, in *bufio.Reader, info *machine.ArchitectureInfo, regs []uint64) []uint64 {
 	for {
 		call, err := m.NextInstruction()
 		if err != nil {
@@ -385,75 +415,49 @@ func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoi
 			}
 		}
 
-		_, brk := sort.Find(len(breakpoints), func(i int) int {
-			// This one MUST be optimized.
-			if pc >= breakpoints[i] {
-				if breakpoints[i] != pc {
-					return 1
-				} else {
-					return 0
-				}
-			} else {
-				return -1
+		brk := false
+		var breakpoint *Breakpoint
+		for i := 0; i < len(breakpoints); i++ {
+			if breakpoints[i].Address == pc {
+				brk = true
+				breakpoint = &breakpoints[i]
 			}
-		})
+		}
 
 		if brk {
-			fmt.Printf(machine.InterCtx.Get("Stopped at breakpoint at address 0x%x\n"), pc)
+			fmt.Printf(machine.InterCtx.Get("Stopped at breakpoint: %v\n"), breakpoint2String(*breakpoint))
 			debuggerPrint(m, sym, []string{"#3"}, info)
 			return printRegisters(m, info, regs)
 		}
 	}
 }
 
-func printBreakpoints(breakpoints []uint64, info *machine.ArchitectureInfo) {
+func printBreakpoints(breakpoints []Breakpoint) {
 	fmt.Println(machine.InterCtx.Get("Breakpoints:"))
 	for _, b := range breakpoints {
-		switch info.WordWidth {
-		case 8:
-			fmt.Printf("0x%02x\n", b)
-		case 16:
-			fmt.Printf("0x%04x\n", b)
-		case 32:
-			fmt.Printf("0x%08x\n", b)
-		default:
-			fmt.Printf("0x%016x\n", b)
-		}
+		fmt.Println(breakpoint2String(b))
 	}
 }
 
-func debuggerBreakpoint(sym []assembler.DebuggerToken, breakpoints *[]uint64, args []string, info *machine.ArchitectureInfo) {
+func debuggerBreakpoint(sym []assembler.DebuggerToken, breakpoints *[]Breakpoint, args []string) {
 	if len(args) < 1 {
-		printBreakpoints(*breakpoints, info)
+		printBreakpoints(*breakpoints)
 		return
 	}
 
-	var addr uint64
-	var found bool
-	for _, s := range sym {
-		if s.Label == args[0] {
-			found = true
-			addr = s.Address
-			break
-		}
+	new, err := parseBreakpoint(args[0], sym)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 
-	if !found {
-		var err error
-		addr, err = strconv.ParseUint(args[0], 0, 64)
-		if err != nil {
-			fmt.Printf(machine.InterCtx.Get("%v is not a number.\n"), args[0])
-			return
-		}
-	}
-
-	n_brks := make([]uint64, len(*breakpoints)+1)
-	var brk_idx int
+	nBreakpoints := make([]Breakpoint, len(*breakpoints)+1)
+	var breakpointIdx int
 	for i, p := range *breakpoints {
-		if p < addr {
-			n_brks[i] = p
-			brk_idx++
-		} else if p == addr {
+		if p.Address < new.Address {
+			nBreakpoints[i] = p
+			breakpointIdx++
+		} else if p.Address == new.Address {
 			fmt.Println(machine.InterCtx.Get("Breakpoint already exists."))
 			return
 		} else {
@@ -461,63 +465,56 @@ func debuggerBreakpoint(sym []assembler.DebuggerToken, breakpoints *[]uint64, ar
 		}
 	}
 
-	n_brks[brk_idx] = addr
-	if brk_idx < len(*breakpoints) {
-		for i, p := range (*breakpoints)[brk_idx:] {
-			n_brks[i+brk_idx+1] = p
+	nBreakpoints[breakpointIdx] = new
+	if breakpointIdx < len(*breakpoints) {
+		for i, p := range (*breakpoints)[breakpointIdx:] {
+			nBreakpoints[i+breakpointIdx+1] = p
 		}
 	}
 
-	*breakpoints = n_brks
+	*breakpoints = nBreakpoints
 
-	fmt.Printf(machine.InterCtx.Get("New breakpoint at address 0x%x\n"), addr)
-	printBreakpoints(*breakpoints, info)
+	fmt.Printf(machine.InterCtx.Get("New breakpoint %v\n"), breakpoint2String(new))
+	printBreakpoints(*breakpoints)
 }
 
-func debuggerRemove(sym []assembler.DebuggerToken, breakpoints *[]uint64, args []string, info *machine.ArchitectureInfo) {
+func debuggerRemove(sym []assembler.DebuggerToken, breakpoints *[]Breakpoint, args []string) {
 	if len(args) < 1 {
-		fmt.Println(machine.InterCtx.Get("remove expects a breakpoint to remove: remove <address>"))
+		fmt.Println(machine.InterCtx.Get("remove expects a breakpoint to remove: remove <address/label/file:line>"))
 		return
 	}
 
-	var addr uint64
-	addr, err := strconv.ParseUint(args[0], 0, 64)
+	breakpoint, err := parseBreakpoint(args[0], sym)
 	if err != nil {
-		for _, t := range sym {
-			if t.Label == args[0] {
-				addr = t.Address
-				goto FIND
-			}
-		}
-
-		fmt.Printf(machine.InterCtx.Get("Cannot parse %v as address.\n"), args[0])
+		fmt.Println(err)
 		return
 	}
-FIND:
+
 	var idx int
 	for i, b := range *breakpoints {
-		if b == addr {
+		if b.Address == breakpoint.Address {
 			idx = i
 			goto FOUND
 		}
 	}
 
-	fmt.Printf(machine.InterCtx.Get("No breakpoint at address 0x%x\n"), addr)
+	fmt.Printf(machine.InterCtx.Get("No breakpoint %v\n"), breakpoint2String(breakpoint))
 	return
+
 FOUND:
-	n_brks := make([]uint64, len(*breakpoints)-1)
+	nBreakpoints := make([]Breakpoint, len(*breakpoints)-1)
 
 	for i := 0; i < idx; i++ {
-		n_brks[i] = (*breakpoints)[i]
+		nBreakpoints[i] = (*breakpoints)[i]
 	}
 
-	for i := idx; i < len(n_brks); i++ {
-		n_brks[i] = (*breakpoints)[i+1]
+	for i := idx; i < len(nBreakpoints); i++ {
+		nBreakpoints[i] = (*breakpoints)[i+1]
 	}
 
-	*breakpoints = n_brks
+	*breakpoints = nBreakpoints
 
-	printBreakpoints(*breakpoints, info)
+	printBreakpoints(*breakpoints)
 }
 
 func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) {
@@ -532,12 +529,12 @@ func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) 
 
 		of, err := strconv.ParseUint(offset, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), offset)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), offset)
 		}
 
 		l, err := strconv.ParseUint(length, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), length)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), length)
 		}
 
 		end := of + l
@@ -557,11 +554,11 @@ func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) 
 
 		ad, err := strconv.ParseUint(addr, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), addr)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), addr)
 		}
 		l, err := strconv.ParseUint(length, 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), length)
+			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), length)
 		}
 
 		mem, err := m.GetMemoryChunk(ad, l)
@@ -611,6 +608,30 @@ func debuggerRewind(m machine.Machine, prog []uint8) {
 	}
 }
 
+func debuggerReload(m machine.Machine, sym *[]assembler.DebuggerToken, breakpoints *[]Breakpoint, prog *[]uint8, fileName string) {
+	newCode, newSym, err := m.Assemble(fileName)
+	if err != nil {
+		fmt.Println(machine.InterCtx.Get("Error assembling file:"))
+		fmt.Println(err)
+		fmt.Println(machine.InterCtx.Get("Keeping old program and program state."))
+		return
+	}
+
+	err = m.LoadProgram(newCode)
+	if err != nil {
+		fmt.Println(machine.InterCtx.Get("Error loading new assembled code:"))
+		fmt.Println(err)
+		fmt.Println(machine.InterCtx.Get("Keeping old program and program state."))
+	}
+
+	*prog = newCode
+	*sym = newSym
+	*breakpoints = []Breakpoint{}
+
+	fmt.Println(machine.InterCtx.Get("Rebuild Assembly."))
+	fmt.Println(machine.InterCtx.Get("Reloaded machine."))
+}
+
 // Returns length (second value) as 0 if it's a register.
 func getSetExpr(m machine.Machine, expr string) (uint64, uint64, error) {
 	addr, length, has_at := strings.Cut(expr, "@")
@@ -638,7 +659,7 @@ func getSetExpr(m machine.Machine, expr string) (uint64, uint64, error) {
 
 	l, err := strconv.ParseUint(length, 0, 64)
 	if err != nil {
-		return 0, 0, fmt.Errorf(machine.InterCtx.Get("%v is not a number"), length)
+		return 0, 0, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), length)
 	}
 
 	return a, l, nil
@@ -656,14 +677,14 @@ func debuggerSet(m machine.Machine, args []string) {
 		return
 	}
 
-	value, err := strconv.ParseUint(args[1], 0, 64)
+	value, err := strconv.ParseInt(args[1], 0, 64)
 	if err != nil {
-		fmt.Printf(machine.InterCtx.Get("Cannot parse %v as number: %v"), args[1], err)
+		fmt.Printf(machine.InterCtx.Get("Cannot parse %v as number: %v\n"), args[1], err)
 		return
 	}
 
 	if length == 0 {
-		err := m.SetRegister(addr, value)
+		err := m.SetRegister(addr, uint64(value))
 		if err != nil {
 			fmt.Printf(machine.InterCtx.Get("Error while changing register content: %v\n"), err)
 		}
@@ -683,14 +704,14 @@ func debuggerSet(m machine.Machine, args []string) {
 	}
 }
 
-func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8) {
+func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8, fileName string) {
 	version()
 	fmt.Println(machine.InterCtx.Get("Type 'help' for a list of commands."))
 
 	info := m.ArchitectureInfo()
 	fmt.Println(machine.InterCtx.Get("Debugging"), info.Name)
 
-	var breakpoints []uint64
+	var breakpoints []Breakpoint
 	in := bufio.NewReader(os.Stdin)
 
 	regs := make([]uint64, len(info.RegistersNames))
@@ -726,13 +747,15 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 			case "continue", "c":
 				regs = debuggerContinue(m, sym, breakpoints, in, &info, regs)
 			case "break", "b":
-				debuggerBreakpoint(sym, &breakpoints, wsl[1:], &info)
+				debuggerBreakpoint(sym, &breakpoints, wsl[1:])
 			case "remove", "r":
-				debuggerRemove(sym, &breakpoints, wsl[1:], &info)
+				debuggerRemove(sym, &breakpoints, wsl[1:])
 			case "dump", "d":
 				debuggerDump(m, wsl[1:], prog)
 			case "rewind", "rew":
 				debuggerRewind(m, prog)
+			case "reload", "rel":
+				debuggerReload(m, &sym, &breakpoints, &prog, fileName)
 			case "set", "s":
 				debuggerSet(m, wsl[1:])
 			case "exit", "e", "quit", "q":

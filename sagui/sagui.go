@@ -218,7 +218,7 @@ func assembleR(t assembler.ResolvedToken) (uint8, error) {
 	ra := uint8(t.Args[0]) & 0x3
 	rb := uint8(t.Args[1]) & 0x3
 	var op uint8
-	switch t.Value {
+	switch string(t.Value) {
 	case "brzr":
 		op = 0x0
 	case "ld":
@@ -255,7 +255,7 @@ func assembleI(t assembler.ResolvedToken) (uint8, error) {
 
 	imm := uint8(t.Args[0]) & 0xf
 	var op uint8
-	switch t.Value {
+	switch string(t.Value) {
 	case "brzi":
 		op = 0x1
 	case "ji":
@@ -276,14 +276,14 @@ func assembleJr(t assembler.ResolvedToken) (uint8, error) {
 		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), "jr")
 	}
 
-	return 0x20 | uint8(t.Args[0] & 0x3), nil
+	return 0x20 | uint8(t.Args[0]&0x3), nil
 }
 
 func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) error {
 	bin := uint8(0)
 	var err error
 
-	switch t.Value {
+	switch string(t.Value) {
 	case "brzr", "ld", "st", "movr", "add", "sub", "and", "or", "not", "slr", "srr":
 		bin, err = assembleR(t)
 	case "brzi", "ji", "movh", "movl":
@@ -293,7 +293,7 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	case "ebreak":
 		bin = 0x60
 	default:
-		return fmt.Errorf(machine.InterCtx.Get("unknown instruction: %v"), t.Value)
+		return fmt.Errorf(machine.InterCtx.Get("unknown instruction: %v"), string(t.Value))
 	}
 
 	if err != nil {
@@ -307,7 +307,11 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 func assemble(t []assembler.ResolvedToken) ([]uint8, error) {
 	size := uint64(0)
 	for _, i := range t {
-		size += i.Size
+		if i.Type == assembler.TOKEN_INSTRUCTION {
+			size += 4
+		} else {
+			size += uint64(len(i.Value))
+		}
 	}
 
 	var err error
@@ -318,7 +322,7 @@ func assemble(t []assembler.ResolvedToken) ([]uint8, error) {
 		if i.Type == assembler.TOKEN_INSTRUCTION {
 			err = assembleInstruction(code, addr, i)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf(machine.InterCtx.Get("%v:%v: Error assembling: %v"), *i.File, i.Line, err)
 			}
 		} else {
 			for _, c := range []uint8(i.Value) {
@@ -331,18 +335,26 @@ func assemble(t []assembler.ResolvedToken) ([]uint8, error) {
 	return code, nil
 }
 
-func (m *Sagui) Assemble(asm string) ([]uint8, []assembler.DebuggerToken, error) {
-	tokens := assembler.Tokenize(asm)
-	rt, err := assembler.ResolveTokensFixedSize(tokens, 1, translateArgs)
+func (m *Sagui) Assemble(file string) ([]uint8, []assembler.DebuggerToken, error) {
+	tokens := []assembler.Token{}
+	err := assembler.Tokenize(file, &tokens)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	symbs := assembler.CreateDebugTokensFixedSize(tokens, 1)
-	code, err := assemble(rt)
+	resolvedTokens, debuggerTokens, err := assembler.ResolveTokens(tokens, func(i *assembler.Instruction) error {
+		i.Size = 1
+		return nil
+	}, translateArgs)
+
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return code, symbs, nil
+	code, err := assemble(resolvedTokens)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return code, debuggerTokens, nil
 }

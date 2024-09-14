@@ -7,13 +7,7 @@
 
 [Tutorial em Vídeo (legendado)](https://youtu.be/RtKvvXgdVak?si=OtjkNxSGmRGNou67)
 
-[Documentação para RISC-V](riscv-doc-pt.md)
-
-[RISC-V Cheatsheet](riscv/cheatsheet-pt.md)
-
-[Documentação para MIPS](mips-doc-pt.md)
-
-[Documentação para Sagui](sagui-doc-pt.md)
+[Documentação](https://egg.gboncoffee.dev.br/docs/pt)
 
 [Contribuindo, bugs, requisição de features](CONTRIBUINDO.md)
 
@@ -39,7 +33,8 @@ Baixe o binário estático para o seu sistema na página de
 compilador de Go instalado, baixe e compile o projeto.
 
 Nota: o binário para Windows não foi testado. Não tenho acesso a nenhuma máquina
-Windows atualmente.
+Windows atualmente. O teste do binário para Darwin (MacOS) depende da minha
+paciência.
 
 ## Uso
 
@@ -79,6 +74,17 @@ label2:	add t0, t0, t0
 ; inserido. Use %% para inserir um % (ou %25).
 msg:
 #Hello, World!%0a
+
+; Algumas diretivas são suportadas. As diretivas "bitsxx" criam números literais 
+; no código, com o tamanho em bits especificado:
+.bits8 0xca 0xfe 0xba 0xbe 0xde 0xad 0xbe 0xef
+.bits16 0xcafe 0xbabe 0xdead 0xbeef
+.bits32 0xcafebabe 0xdeadbeef
+.bits64 0xcafebabedeadbeef
+; A diretiva "space" adiciona alguns bytes de espaço vazio no código:
+.space 16
+; A diretiva "include" faz um "copia-cola" de outro arquivo no código:
+.include other-asm.asm
 ```
 
 Cada diretório de cada arquitetura possui programas Assembly de teste que podem

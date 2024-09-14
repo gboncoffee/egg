@@ -1,18 +1,14 @@
 package sagui
 
 import (
-	_ "embed"
 	"testing"
 
 	"github.com/gboncoffee/egg/machine"
 )
 
-//go:embed test.asm
-var asm string
-
 func TestSagui(t *testing.T) {
 	var m Sagui
-	code, _, err := m.Assemble(asm)
+	code, _, err := m.Assemble("test.asm")
 	if err != nil {
 		t.Fatalf("Couldn't assemble: %v", err)
 	}

@@ -19,6 +19,8 @@ Well, first thanks! The codebase is very simple and navigatable. Enjoy your
 time, and if you have any questions,
 [fill an issue](https://github.com/gboncoffee/egg/issues).
 
+To contribute with code, open a pull request!
+
 ## Adding backends
 
 Create a new Go package at the project directory. For example, let's add a
