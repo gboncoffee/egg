@@ -25,7 +25,8 @@
 //
 // The program is loaded at mos6502.TEXT_PAGE (0x8000).
 //
-// System calls are performed via the BRK instruction.
+// System calls are performed via the BRK instruction. As there are no
+// interrupts here, rti is not implemented.
 package mos6502
 
 import (
@@ -70,8 +71,6 @@ const (
 	AbsoluteX
 	AbsoluteY
 	IndirectIndexedX
-	IndirectIndexedY
-	IndexedIndirectX
 	IndexedIndirectY
 	Accumulator
 )
@@ -176,9 +175,9 @@ func (m *Mos6502) execAdc(addressMode uint8) error {
 	case 0b110:
 		mode = AbsoluteY
 	case 0b000:
-		mode = IndexedIndirectX
+		mode = IndirectIndexedX
 	case 0b100:
-		mode = IndirectIndexedY
+		mode = IndexedIndirectY
 	}
 	operand := *m.getPointerByAddressMode(mode)
 
@@ -216,9 +215,9 @@ func (m *Mos6502) execAnd(addressMode uint8) {
 	case 0b110:
 		mode = AbsoluteY
 	case 0b000:
-		mode = IndexedIndirectX
+		mode = IndirectIndexedX
 	case 0b100:
-		mode = IndirectIndexedY
+		mode = IndexedIndirectY
 	}
 
 	operand := *m.getPointerByAddressMode(mode)
@@ -490,7 +489,7 @@ func (m *Mos6502) execOra(addressMode uint8) {
 
 	m.registers.A |= content
 
-	m.setFlag(NEGATIVE_FLAG, m.registers.A & 0b10000000 != 0)
+	m.setFlag(NEGATIVE_FLAG, m.registers.A&0b10000000 != 0)
 	m.setFlag(ZERO_FLAG, m.registers.A == 0)
 }
 
@@ -522,12 +521,140 @@ func (m *Mos6502) execRol(addressMode uint8) {
 		carry = 0
 	}
 
-	m.setFlag(CARRY_FLAG, *addr & 0b10000000 != 0)
+	m.setFlag(CARRY_FLAG, *addr&0b10000000 != 0)
 	*addr = *addr << 1
 	*addr |= carry
 
-	m.setFlag(NEGATIVE_FLAG, *addr & 0b10000000 != 0)
+	m.setFlag(NEGATIVE_FLAG, *addr&0b10000000 != 0)
 	m.setFlag(ZERO_FLAG, *addr != 0)
+}
+
+func (m *Mos6502) execRor(addressMode uint8) {
+	var mode AddressMode
+	switch addressMode {
+	case 0b010:
+		mode = Accumulator
+	case 0b001:
+		mode = ZeroPage
+	case 0b101:
+		mode = ZeroPageX
+	case 0b011:
+		mode = Absolute
+	case 0b111:
+		mode = AbsoluteX
+	}
+	addr := m.getPointerByAddressMode(mode)
+
+	var carry uint8
+	if m.isFlagSet(CARRY_FLAG) {
+		carry = 0b10000000
+	} else {
+		carry = 0
+	}
+
+	m.setFlag(CARRY_FLAG, *addr&1 != 0)
+	*addr = *addr >> 1
+	*addr |= carry
+
+	m.setFlag(NEGATIVE_FLAG, *addr&0b10000000 != 0)
+	m.setFlag(ZERO_FLAG, *addr != 0)
+}
+
+func (m *Mos6502) execSbc(addressMode uint8) {
+	var mode AddressMode
+	switch addressMode {
+	case 0b010:
+		mode = Immediate
+	case 0b001:
+		mode = ZeroPage
+	case 0b101:
+		mode = ZeroPageX
+	case 0b011:
+		mode = Absolute
+	case 0b111:
+		mode = AbsoluteX
+	case 0b110:
+		mode = AbsoluteY
+	case 0b000:
+		mode = IndirectIndexedX
+	case 0b100:
+		mode = IndexedIndirectY
+	}
+
+	operand := *m.getPointerByAddressMode(mode)
+
+	// This is not reversed! We need to subtract the complement of the carry.
+	var carry uint8
+	if m.isFlagSet(CARRY_FLAG) {
+		carry = 0
+	} else {
+		carry = 1
+	}
+
+	m.registers.A = m.registers.A - operand - carry
+	m.setFlag(NEGATIVE_FLAG, m.registers.A&0b10000000 != 0)
+	m.setFlag(ZERO_FLAG, m.registers.A == 0)
+	// This rule is weird but in sbc the carry is set if the result is >= 0.
+	m.setFlag(CARRY_FLAG, m.registers.A&0b10000000 == 0)
+	// This too: the overflow should be set if:
+	// - The carry is 1, and the result > 128
+	// - The carry is 0, and the result > 127
+	// But our carry is actually !carry. So the reverse. We achieve it easily by
+	// subtracting our carry from 128.
+	m.setFlag(OVERFLOW_FLAG, m.registers.A > 128-carry)
+}
+
+func (m *Mos6502) execSta(addressMode uint8) {
+	var mode AddressMode
+	switch addressMode {
+	case 0b001:
+		mode = ZeroPage
+	case 0b101:
+		mode = ZeroPageX
+	case 0b011:
+		mode = Absolute
+	case 0b111:
+		mode = AbsoluteX
+	case 0b110:
+		mode = AbsoluteY
+	case 0b000:
+		mode = IndirectIndexedX
+	case 0b100:
+		mode = IndexedIndirectY
+	}
+
+	address := m.getPointerByAddressMode(mode)
+	*address = m.registers.A
+}
+
+func (m *Mos6502) execStx(addressMode uint8) {
+	var mode AddressMode
+	switch addressMode {
+	case 0b001:
+		mode = ZeroPage
+	case 0b101:
+		mode = ZeroPageY
+	case 0b011:
+		mode = Absolute
+	}
+
+	address := m.getPointerByAddressMode(mode)
+	*address = m.registers.X
+}
+
+func (m *Mos6502) execSty(addressMode uint8) {
+	var mode AddressMode
+	switch addressMode {
+	case 0b001:
+		mode = ZeroPage
+	case 0b101:
+		mode = ZeroPageX
+	case 0b011:
+		mode = Absolute
+	}
+
+	address := m.getPointerByAddressMode(mode)
+	*address = m.registers.Y
 }
 
 //
@@ -579,6 +706,13 @@ func (m *Mos6502) execJsr() {
 	m.registers.PC = *(*uint16)(unsafe.Pointer(target))
 }
 
+func (m *Mos6502) execRts() {
+	// Just undoes the one above.
+	stackAddr := uint64(m.registers.S) | STACK_PAGE
+	retAddrSlice, _ := m.GetMemoryChunk(stackAddr, 2)
+	m.registers.PC = uint16(retAddrSlice[0]) | (uint16(retAddrSlice[1]) << 8)
+}
+
 func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	rawOpcode, _ := m.GetMemory(uint64(m.registers.PC))
 	m.registers.PC++
@@ -591,7 +725,7 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	case 0b11101010:
 		return nil, nil
 	//
-	// Branches and jumps
+	// Branches, jumps and returns.
 	//
 	// bcc
 	case 0b10010000:
@@ -623,6 +757,8 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 		m.execJmpIndirect()
 	case 0b00100000:
 		m.execJsr()
+	case 0b01100000:
+		m.execRts()
 	//
 	// Clears.
 	//
@@ -638,6 +774,18 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	// clv
 	case 0b10111000:
 		m.setFlag(OVERFLOW_FLAG, false)
+	//
+	// Sets.
+	//
+	// sec
+	case 0b00111000:
+		m.setFlag(CARRY_FLAG, true)
+	// sed
+	case 0b11111000:
+		m.setFlag(DECIMAL_FLAG, true)
+	// sei
+	case 0b01111000:
+		m.setFlag(INTERRUPT_DISABLE_FLAG, true)
 	//
 	// Others.
 	//
@@ -669,7 +817,7 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	case 0b01101000:
 		m.registers.A, _ = m.GetMemory(uint64(m.registers.S))
 		m.registers.S++
-		m.setFlag(NEGATIVE_FLAG, m.registers.A & 0b10000000 != 0)
+		m.setFlag(NEGATIVE_FLAG, m.registers.A&0b10000000 != 0)
 		m.setFlag(ZERO_FLAG, m.registers.A != 0)
 	// php
 	case 0b00001000:
@@ -679,8 +827,33 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 	case 0b00101000:
 		m.registers.P, _ = m.GetMemory(uint64(m.registers.S))
 		m.registers.S++
-		m.setFlag(NEGATIVE_FLAG, m.registers.P & 0b10000000 != 0)
+		m.setFlag(NEGATIVE_FLAG, m.registers.P&0b10000000 != 0)
 		m.setFlag(ZERO_FLAG, m.registers.P != 0)
+	// tax
+	case 0b10101010:
+		m.registers.X = m.registers.A
+		m.setFlag(NEGATIVE_FLAG, m.registers.X&0b10000000 != 0)
+		m.setFlag(ZERO_FLAG, m.registers.X == 0)
+	// tya
+	case 0b10011000:
+		m.registers.A = m.registers.Y
+		m.setFlag(NEGATIVE_FLAG, m.registers.A&0b10000000 != 0)
+		m.setFlag(ZERO_FLAG, m.registers.A == 0)
+	// tsx
+	case 0b10111010:
+		m.registers.X = m.registers.S
+		m.setFlag(NEGATIVE_FLAG, m.registers.X&0b10000000 != 0)
+		m.setFlag(ZERO_FLAG, m.registers.X == 0)
+	// txa
+	case 0b10001010:
+		m.registers.A = m.registers.X
+		m.setFlag(NEGATIVE_FLAG, m.registers.A&0b10000000 != 0)
+		m.setFlag(ZERO_FLAG, m.registers.A == 0)
+	// txs
+	case 0b10011010:
+		m.registers.S = m.registers.X
+		m.setFlag(NEGATIVE_FLAG, m.registers.S&0b10000000 != 0)
+		m.setFlag(ZERO_FLAG, m.registers.S == 0)
 	default:
 		opcode, addressMode := parseOpcode(rawOpcode)
 		switch opcode {
@@ -718,6 +891,16 @@ func (m *Mos6502) NextInstruction() (*machine.Call, error) {
 			m.execOra(addressMode)
 		case 0b00110:
 			m.execRol(addressMode)
+		case 0b01110:
+			m.execRor(addressMode)
+		case 0b11101:
+			m.execSbc(addressMode)
+		case 0b10001:
+			m.execSta(addressMode)
+		case 0b10010:
+			m.execStx(addressMode)
+		case 0b10000:
+			m.execSty(addressMode)
 		}
 	}
 
