@@ -16,7 +16,7 @@ processador, criado para fins educacionais.
 
 O pacote `egg` provém uma interface para interagir com máquinas, assim provendo
 suporte a diferentes backends provendo arquiteturas. No momento, há backends de
-RISC-V IM de 32 bits e MIPS32 (experimental).
+RISC-V IM de 32 bits, MIPS32 e uma arquitetura fantasia de 8 bits, "Sagui".
 
 O pacote `egg/assembler` provém uma pequena biblioteca para criação de
 assemblers e o suporte ao debugger do EGG.

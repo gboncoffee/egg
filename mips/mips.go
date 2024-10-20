@@ -73,6 +73,7 @@ type Mips struct {
 // break DONE ASM
 // syscall DONE ASM
 // j DONE ASM
+// jal DONE ASM
 // jalr DONE ASM
 // jr DONE ASM
 // lb DONE ASM
@@ -87,9 +88,9 @@ type Mips struct {
 // sw DONE ASM
 //
 
-func signExtend64(n uint32) uint64 {
-	sign := n >> 31
-	sign64 := uint64(^(sign - 1)) << 32
+func signExtend16(n uint16) uint64 {
+	sign := n >> 15
+	sign64 := uint64(^(sign - 1)) << 16
 	return uint64(n) | sign64
 }
 
@@ -149,7 +150,7 @@ func (m *Mips) execSpecial(rs, rt, rd, shamt, funct uint8) {
 		r = int32(m.pc + 4)
 		fallthrough
 	case 8:
-		m.pc = uint32(rsv)
+		m.pc = uint32(rsv) - 4
 	// add addu
 	// sub subu
 	// slt sltu
@@ -192,17 +193,17 @@ func (m *Mips) execSpecial(rs, rt, rd, shamt, funct uint8) {
 	// srl
 	// srlv
 	case 0:
-		r = rtv << shamt
+		r = rsv << shamt
 	case 4:
-		r = rtv << rsv
+		r = rsv << rtv
 	case 3:
-		r = rtv >> shamt
+		r = rsv >> shamt
 	case 7:
-		r = rtv >> rsv
+		r = rsv >> rtv
 	case 2:
-		r = int32(uint32(rtv) >> uint32(shamt))
+		r = int32(uint32(rsv) >> uint32(shamt))
 	case 6:
-		r = int32(uint32(rtv) >> uint32(rsv))
+		r = int32(uint32(rsv) >> uint32(rtv))
 	// mult
 	// div
 	case 0x18:
@@ -274,7 +275,7 @@ func (m *Mips) execSpecial3(rs, rd, shamt, funct uint8) {
 			sign = (^(sign - 1)) << 8
 			r = int32(rsvb | sign)
 		case 24:
-			rsvb := rsv & 0xff
+			rsvb := rsv & 0xffff
 			sign := rsvb >> 15
 			sign = (^(sign - 1)) << 16
 			r = int32(rsvb | sign)
@@ -286,17 +287,18 @@ func (m *Mips) execSpecial3(rs, rd, shamt, funct uint8) {
 
 func (m *Mips) execRegimm(rs, shamt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
+	off := int32(signExtend16(uint16(imm)) << 2)
 
 	switch shamt {
 	// bltz
 	case 0:
 		if int32(rsv64) < 0 {
-			m.pc = uint32(int32(m.pc) + int32(imm<<2) - 4)
+			m.pc = uint32(int32(m.pc) + off - 4)
 		}
 	// bgez
 	case 1:
 		if int32(rsv64) >= 0 {
-			m.pc = uint32(int32(m.pc) + int32(imm<<2) - 4)
+			m.pc = uint32(int32(m.pc) + off - 4)
 		}
 	}
 }
@@ -304,30 +306,37 @@ func (m *Mips) execRegimm(rs, shamt uint8, imm uint32) {
 func (m *Mips) executeBeq(rs, rt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
+
+	off := int32(signExtend16(uint16(imm)) << 2)
 	if rsv64 == rtv64 {
-		m.pc = uint32(int32(m.pc) + int32(imm<<2) - 4)
+		m.pc = uint32(int32(m.pc) + off - 4)
 	}
 }
 
 func (m *Mips) executeBne(rs, rt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
+	off := int32(signExtend16(uint16(imm)) << 2)
 	if rsv64 != rtv64 {
-		m.pc = uint32(int32(m.pc) + int32(imm<<2) - 4)
+		m.pc = uint32(int32(m.pc) + off - 4)
 	}
 }
 
 func (m *Mips) executeBgtz(rs uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
+
+	off := int32(signExtend16(uint16(imm)) << 2)
 	if int32(rsv64) > 0 {
-		m.pc = uint32(int32(m.pc) + int32(imm<<2) - 4)
+		m.pc = uint32(int32(m.pc) + off - 4)
 	}
 }
 
 func (m *Mips) executeBlez(rs uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
+
+	off := int32(signExtend16(uint16(imm)) << 2)
 	if int32(rsv64) <= 0 {
-		m.pc = uint32(int32(m.pc) + int32(imm<<2) - 4)
+		m.pc = uint32(int32(m.pc) + off - 4)
 	}
 }
 
@@ -397,9 +406,8 @@ func (m *Mips) executeJal(imm uint32) {
 }
 
 func (m *Mips) executeLb(rs, rt uint8, off uint32) {
-	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
-	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
+	mem, _ := m.GetMemory(uint64(uint32(rsv64) + off))
 
 	memb := mem & 0xff
 	sign := uint64(memb >> 7)
@@ -410,18 +418,17 @@ func (m *Mips) executeLb(rs, rt uint8, off uint32) {
 }
 
 func (m *Mips) executeLbu(rs, rt uint8, off uint32) {
-	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
-	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
+	mem, _ := m.GetMemory(uint64(uint32(rsv64) + off))
 
 	m.SetRegister(uint64(rt), uint64(mem))
 }
 
 func (m *Mips) executeLh(rs, rt uint8, off uint32) {
-	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
-	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
-	mem2, _ := m.GetMemory(uint64(int32(rsv64) + offs))
+	memSlice, _ := m.GetMemoryChunk(uint64(uint32(rsv64)+off), 2)
+	mem := memSlice[0]
+	mem2 := memSlice[1]
 
 	memb := uint64(mem) | (uint64(mem2) << 8)
 	sign := memb >> 15
@@ -432,71 +439,68 @@ func (m *Mips) executeLh(rs, rt uint8, off uint32) {
 }
 
 func (m *Mips) executeLhu(rs, rt uint8, off uint32) {
-	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
-	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
-	mem2, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 1)
+	memSlice, _ := m.GetMemoryChunk(uint64(uint32(rsv64)+off), 2)
+	mem := memSlice[0]
+	mem2 := memSlice[1]
 
 	m.SetRegister(uint64(rt), uint64(mem)|(uint64(mem2)<<8))
 }
 
 func (m *Mips) executeLw(rs, rt uint8, off uint32) {
-	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
-	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
-	mem2, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 1)
-	mem3, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 2)
-	mem4, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 3)
+	memSlice, _ := m.GetMemoryChunk(uint64(uint32(rsv64)+off), 4)
+	mem := memSlice[0]
+	mem2 := memSlice[1]
+	mem3 := memSlice[2]
+	mem4 := memSlice[3]
 
 	m.SetRegister(uint64(rt), uint64(mem)|(uint64(mem2)<<8)|(uint64(mem3)<<16)|(uint64(mem4)<<24))
 }
 
 func (m *Mips) executeLwl(rs, rt uint8, off uint32) {
-	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
-	mem, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 2)
-	mem2, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 3)
+	memSlice, _ := m.GetMemoryChunk(uint64(uint32(rsv64)+off), 2)
+	mem := memSlice[0]
+	mem2 := memSlice[1]
 
 	m.SetRegister(uint64(rt), ((uint64(mem)|(uint64(mem2)<<8))<<16)|(rtv64&0xffff))
 }
 
 func (m *Mips) executeLwr(rs, rt uint8, off uint32) {
-	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
-	mem, _ := m.GetMemory(uint64(int32(rsv64) + offs))
-	mem2, _ := m.GetMemory(uint64(int32(rsv64)+offs) + 1)
+	memSlice, _ := m.GetMemoryChunk(uint64(uint32(rsv64)+off), 2)
+	mem := memSlice[0]
+	mem2 := memSlice[1]
 
 	m.SetRegister(uint64(rt), (uint64(mem)|(uint64(mem2)<<8))|(rtv64&0xffff0000))
 }
 
 func (m *Mips) executeSb(rs, rt uint8, off uint32) {
-	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
 
-	m.SetMemory(uint64(int32(rsv64)+offs), uint8(rtv64&0xff))
+	m.SetMemory(uint64(uint32(rsv64)+off), uint8(rtv64&0xff))
 }
 
 func (m *Mips) executeSh(rs, rt uint8, off uint32) {
-	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
 
-	m.SetMemory(uint64(int32(rsv64)+offs), uint8(rtv64&0xff))
-	m.SetMemory(uint64(int32(rsv64)+offs)+1, uint8((rtv64&0xff00)>>8))
+	m.SetMemory(uint64(uint32(rsv64)+off), uint8(rtv64&0xff))
+	m.SetMemory(uint64(uint32(rsv64)+off)+1, uint8((rtv64&0xff00)>>8))
 }
 
 func (m *Mips) executeSw(rs, rt uint8, off uint32) {
-	offs := int32(off)
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
 
-	m.SetMemory(uint64(int32(rsv64)+offs), uint8(rtv64&0xff))
-	m.SetMemory(uint64(int32(rsv64)+offs)+1, uint8((rtv64&0xff00)>>8))
-	m.SetMemory(uint64(int32(rsv64)+offs)+2, uint8((rtv64&0xff0000)>>16))
-	m.SetMemory(uint64(int32(rsv64)+offs)+3, uint8((rtv64&0xff000000)>>24))
+	m.SetMemory(uint64(uint32(rsv64)+off), uint8(rtv64&0xff))
+	m.SetMemory(uint64(uint32(rsv64)+off)+1, uint8((rtv64&0xff00)>>8))
+	m.SetMemory(uint64(uint32(rsv64)+off)+2, uint8((rtv64&0xff0000)>>16))
+	m.SetMemory(uint64(uint32(rsv64)+off)+3, uint8((rtv64&0xff000000)>>24))
 }
 
 func (m *Mips) execute(i uint32) (*machine.Call, error) {
@@ -533,7 +537,7 @@ func (m *Mips) execute(i uint32) (*machine.Call, error) {
 		rs, _, rd, _, funct := parseR(i)
 		m.execSpecial2(rs, rd, funct)
 	case 31:
-		rs, _, rd, shamt, funct := parseR(i)
+		_, rs, rd, shamt, funct := parseR(i)
 		m.execSpecial3(rs, rd, shamt, funct)
 	// beq
 	case 4:
@@ -879,7 +883,7 @@ func assembleSpecial3(t assembler.ResolvedToken) (uint32, error) {
 		shamt = 24
 	}
 
-	code := uint32(28 << 26)
+	code := uint32(31 << 26)
 	code = code | (uint32(rt) << 16)
 	code = code | (uint32(rd) << 11)
 	code = code | (uint32(shamt) << 6)
@@ -901,7 +905,7 @@ func assembleRegimm(t assembler.ResolvedToken, addr int) (uint32, error) {
 		funct = 1
 	}
 
-	br := uint64(signExtend64(uint32(t.Args[1])) - uint64(addr))
+	br := (signExtend16(uint16(t.Args[1])) - uint64(addr)) >> 2
 	code := uint32(1 << 26)
 	code = code | (uint32(rs) << 21)
 	code = code | (uint32(funct) << 16)
@@ -993,7 +997,7 @@ func assembleLui(t assembler.ResolvedToken) (uint32, error) {
 	}
 
 	rt := t.Args[0] << 16
-	op := uint64(12 << 26)
+	op := uint64(15 << 26)
 	return uint32(op | rt | t.Args[1]), nil
 }
 
@@ -1005,7 +1009,7 @@ func assembleBeq(t assembler.ResolvedToken, addr int) (uint32, error) {
 	rt := t.Args[1]
 	off := t.Args[2]
 
-	br := uint64(signExtend64(uint32(off)) - uint64(addr))
+	br := (signExtend16(uint16(off)) - uint64(addr)) >> 2
 	code := uint32(4 << 26)
 	code = code | (uint32(rs) << 21)
 	code = code | (uint32(rt) << 16)
@@ -1015,34 +1019,30 @@ func assembleBeq(t assembler.ResolvedToken, addr int) (uint32, error) {
 }
 
 func assembleBgtz(t assembler.ResolvedToken, addr int) (uint32, error) {
-	if len(t.Args) != 3 {
+	if len(t.Args) != 2 {
 		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 2 arguments"), t.Value)
 	}
 	rs := t.Args[0]
-	rt := t.Args[1]
-	off := t.Args[2]
+	off := t.Args[1]
 
-	br := uint64(signExtend64(uint32(off)) - uint64(addr))
+	br := (signExtend16(uint16(off)) - uint64(addr)) >> 2
 	code := uint32(7 << 26)
 	code = code | (uint32(rs) << 21)
-	code = code | (uint32(rt) << 16)
 	code = code | uint32(br&0xffff)
 
 	return code, nil
 }
 
 func assembleBlez(t assembler.ResolvedToken, addr int) (uint32, error) {
-	if len(t.Args) != 3 {
+	if len(t.Args) != 2 {
 		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 2 arguments"), t.Value)
 	}
 	rs := t.Args[0]
-	rt := t.Args[1]
-	off := t.Args[2]
+	off := t.Args[1]
 
-	br := uint64(signExtend64(uint32(off)) - uint64(addr))
+	br := (signExtend16(uint16(off)) - uint64(addr)) >> 2
 	code := uint32(6 << 26)
 	code = code | (uint32(rs) << 21)
-	code = code | (uint32(rt) << 16)
 	code = code | uint32(br&0xffff)
 
 	return code, nil
@@ -1056,7 +1056,7 @@ func assembleBne(t assembler.ResolvedToken, addr int) (uint32, error) {
 	rt := t.Args[1]
 	off := t.Args[2]
 
-	br := uint64(signExtend64(uint32(off)) - uint64(addr))
+	br := (signExtend16(uint16(off)) - uint64(addr)) >> 2
 	code := uint32(5 << 26)
 	code = code | (uint32(rs) << 21)
 	code = code | (uint32(rt) << 16)
@@ -1070,7 +1070,15 @@ func assembleJ(t assembler.ResolvedToken) (uint32, error) {
 		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
-	return uint32(2<<26) | uint32(t.Args[0]&0xfffffff), nil
+	return uint32(2<<26) | uint32((t.Args[0]>>2)&0xfffffff), nil
+}
+
+func assembleJal(t assembler.ResolvedToken) (uint32, error) {
+	if len(t.Args) != 1 {
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
+	}
+
+	return uint32(3<<26) | uint32((t.Args[0]>>2)&0xfffffff), nil
 }
 
 func assembleLb(t assembler.ResolvedToken) (uint32, error) {
@@ -1190,7 +1198,7 @@ func assembleSw(t assembler.ResolvedToken) (uint32, error) {
 	code = code | uint32(t.Args[0]<<16)
 	code = code | uint32(t.Args[1]<<21)
 
-	return code | (0x2a << 26), nil
+	return code | (0x2b << 26), nil
 }
 
 func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) error {
@@ -1236,6 +1244,8 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 		bin = 12
 	case "j":
 		bin, err = assembleJ(t)
+	case "jal":
+		bin, err = assembleJal(t)
 	case "lb":
 		bin, err = assembleLb(t)
 	case "lbu":
