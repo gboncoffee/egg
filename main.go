@@ -15,13 +15,13 @@ import (
 	"github.com/gboncoffee/egg/sagui"
 )
 
-const VERSION = "3.0.1"
+const VERSION = "3.1.0"
 
 // Put new architetures here... (main.go:/switch architeture)
 func listArchs() {
 	fmt.Println(machine.InterCtx.Get(`Currently supported architetures:
 'riscv' - RISC-V IM, 32 bits
-'mips'  - Subset of MIPS32 (experimental)
+'mips'  - Subset of MIPS32
 'sagui' - Fantasy 8 bit RISC`))
 }
 

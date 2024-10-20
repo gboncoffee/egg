@@ -17,7 +17,8 @@ educational purpouses.
 
 The `egg` package itself provides only an interface for interacting with
 machines, thus supporting different architeture backends. Currently, there are
-RISC-V IM 32 bits and a MIPS32 (experimental) backends implemented.
+RISC-V IM 32 bits, MIPS32 and a fantasy 8 bit architecture "Sagui" backends
+implemented.
 
 `egg/assembler` also provides a small library for creating assemblers, and the
 support for EGG's debugger.
