@@ -73,6 +73,7 @@ type Mips struct {
 // break DONE ASM
 // syscall DONE ASM
 // j DONE ASM
+// jal DONE ASM
 // jalr DONE ASM
 // jr DONE ASM
 // lb DONE ASM
@@ -1073,6 +1074,14 @@ func assembleJ(t assembler.ResolvedToken) (uint32, error) {
 	return uint32(2<<26) | uint32(t.Args[0]&0xfffffff), nil
 }
 
+func assembleJal(t assembler.ResolvedToken) (uint32, error) {
+	if len(t.Args) != 1 {
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
+	}
+
+	return uint32(3<<26) | uint32(t.Args[0]&0xfffffff), nil
+}
+
 func assembleLb(t assembler.ResolvedToken) (uint32, error) {
 	if len(t.Args) != 3 {
 		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
@@ -1236,6 +1245,8 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 		bin = 12
 	case "j":
 		bin, err = assembleJ(t)
+	case "jal":
+		bin, err = assembleJal(t)
 	case "lb":
 		bin, err = assembleLb(t)
 	case "lbu":
