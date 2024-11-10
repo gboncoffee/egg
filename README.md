@@ -40,6 +40,8 @@ patience.
 
 ## Quickstart
 
+EGG is a command line application, you must run it from a terminal emulator.
+
 Running the emulator with an Assembly file will assemble it and start a machine
 to run it on. By default, the machine is a RISC-V IM 32 bits. Use the flag `-a`
 or `-arch` to change the architeture. Run `egg -h` to see all command line

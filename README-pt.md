@@ -38,6 +38,9 @@ paciência.
 
 ## Uso
 
+O EGG é um aplicativo de linha de comando. Você deve utilizá-lo com um emulador
+de terminal.
+
 Rode o emulador com um arquivo de Assembly para montá-lo e iniciar uma máquina
 rodando o programa. O backend utilizado por padrão é uma máquina de RISC-V 32
 bits. Use a opção `-a` ou `-arch` para mudar a arquitetura. A opção `-h` mostra
