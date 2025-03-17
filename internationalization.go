@@ -69,10 +69,10 @@ var brazilian = map[string]string{
 	// Infos.
 	`Currently supported architetures:
 'riscv' - RISC-V IM, 32 bits
-'mips'  - Subset of MIPS32 (experimental)
+'mips'  - Subset of MIPS32
 'sagui' - Fantasy 8 bit RISC`: `Arquiteturas suportadas:
 'riscv' - RISC-V IM, 32 bits
-'mips'  - Subconjunto de MIPS32 (experimental)
+'mips'  - Subconjunto de MIPS32
 'sagui' - RISC fantasia de 8 bits`,
 	"EGG - Emulador Genérico do Gabriel - version ": "EGG - Emulador Genérico do Gabriel - versão ",
 	// Main execution loop.

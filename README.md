@@ -17,7 +17,8 @@ educational purpouses.
 
 The `egg` package itself provides only an interface for interacting with
 machines, thus supporting different architeture backends. Currently, there are
-RISC-V IM 32 bits and a MIPS32 (experimental) backends implemented.
+RISC-V IM 32 bits, MIPS32 and a fantasy 8 bit architecture "Sagui" backends
+implemented.
 
 `egg/assembler` also provides a small library for creating assemblers, and the
 support for EGG's debugger.
@@ -38,6 +39,8 @@ machine nowadays. The testing of the Darwin (MacOS) binary depends on my
 patience.
 
 ## Quickstart
+
+EGG is a command line application, you must run it from a terminal emulator.
 
 Running the emulator with an Assembly file will assemble it and start a machine
 to run it on. By default, the machine is a RISC-V IM 32 bits. Use the flag `-a`

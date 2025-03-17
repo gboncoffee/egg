@@ -16,7 +16,7 @@ processador, criado para fins educacionais.
 
 O pacote `egg` provém uma interface para interagir com máquinas, assim provendo
 suporte a diferentes backends provendo arquiteturas. No momento, há backends de
-RISC-V IM de 32 bits e MIPS32 (experimental).
+RISC-V IM de 32 bits, MIPS32 e uma arquitetura fantasia de 8 bits, "Sagui".
 
 O pacote `egg/assembler` provém uma pequena biblioteca para criação de
 assemblers e o suporte ao debugger do EGG.
@@ -37,6 +37,9 @@ Windows atualmente. O teste do binário para Darwin (MacOS) depende da minha
 paciência.
 
 ## Uso
+
+O EGG é um aplicativo de linha de comando. Você deve utilizá-lo com um emulador
+de terminal.
 
 Rode o emulador com um arquivo de Assembly para montá-lo e iniciar uma máquina
 rodando o programa. O backend utilizado por padrão é uma máquina de RISC-V 32
