@@ -30,11 +30,12 @@ me procure no campus e nos laboratórios!
 
 Baixe o binário estático para o seu sistema na página de
 [releases](https://github.com/gboncoffee/egg/releases), ou, caso tenha o
-compilador de Go instalado, baixe e compile o projeto.
+compilador de Go instalado, baixe e compile o projeto. Quando nenhuma
+arquitetura for informada, assuma x86_64.
 
-Nota: o binário para Windows não foi testado. Não tenho acesso a nenhuma máquina
-Windows atualmente. O teste do binário para Darwin (MacOS) depende da minha
-paciência.
+Nota: Eu sempre testo o binário para Linux x86_64. Eventualmente consigo testar
+os binários de Darwin x86_64 e ARM64. O resto não é testado, mas devem funcionar
+direito.
 
 ## Uso
 
