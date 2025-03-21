@@ -46,6 +46,9 @@ func (m *ReduxV) SetRegister(reg uint64, value uint64) error {
 	if reg > 3 {
 		return fmt.Errorf(machine.InterCtx.Get("no such register: %v"), reg)
 	}
+	if value > math.MaxUint8 {
+		return fmt.Errorf(machine.InterCtx.Get("value %v is bigger than maximum 8 bit address %v"), value)
+	}
 	m.registers[reg] = uint8(value)
 	return nil
 }
