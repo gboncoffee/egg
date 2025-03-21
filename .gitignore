@@ -1,4 +1,9 @@
-/egg
-/egg-windows.exe
-/egg-linux
-/egg-darwin
+egg
+egg-linux
+egg-linux-arm64
+egg-linux-riscv64
+egg-plan9
+egg-darwin
+egg-darwin-arm64
+egg-windows.exe
+egg-windows-arm64.exe

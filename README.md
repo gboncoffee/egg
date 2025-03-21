@@ -34,9 +34,8 @@ Simply grab the static binary for your OS at the
 [releases](https://github.com/gboncoffee/egg/releases) page. Or, if you have the
 Go compiler, build the project from source.
 
-Note: the Windows binary is untested, as I don't have access to any Windows
-machine nowadays. The testing of the Darwin (MacOS) binary depends on my
-patience.
+Note: I always test the binary for Linux x86_64. I test Darwin (x86_64 and
+ARM64) if I manage to. Other binaries are not tested but should work properly.
 
 ## Quickstart
 
