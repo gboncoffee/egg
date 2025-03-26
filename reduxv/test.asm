@@ -16,10 +16,11 @@
 	brzr r0, r1
 
 	; The addi should not be performed.
-	ji 2
+	ji ji_test
 	addi 0xf
 
 	; Arithmetic instructions.
+ji_test:
 	sub r0, r0 ; r0 = 0
 	not r0, r0 ; r0 = 1
 	add r0, r0 ; r0 = 2

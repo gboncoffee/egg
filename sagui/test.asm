@@ -19,17 +19,19 @@
 
 	; Again, movr shouldn't be performed.
 	sub r0, r0
-	brzi 2
+	brzi brzi_test
 	movr r0, r0
 	; Now the branches shouldn't be performed.
+brzi_test:
 	movl 1
 	brzi 3
 	brzr r0, r0
 	; Lastly, test ji.
-	ji 2
+	ji ji_test
 	movr r0, r0
 
 	; Arithmetic instructions.
+ji_test:
 	sub r0, r0
 	movl 0x1
 	movr r1, r0

@@ -1,10 +1,6 @@
 // Package egg/sagui implements a Sagui machine for EGG.
 // There's an extension in the original Sagui from Dr. Marco Zanata: an movr
 // from 0 to 0 is a BREAK.
-//
-// Due to the (lack of) bit size, almost all jumps would need to be adjusted
-// manually. So this assembler just don't fix relative-addressing and you're up
-// to your own to manually compute all jumps. Good luck.
 package sagui
 
 import (
@@ -27,6 +23,12 @@ func signExtend(n uint8) uint8 {
 	sign := n >> 3
 	sign = (^(sign - 1)) << 4
 	return n | sign
+}
+
+func signExtend8(n uint8) uint8 {
+	sign := n >> 3
+	sign8 := uint8(^(sign - 1)) << 4
+	return n | sign8
 }
 
 func (m *Sagui) SetRegister(reg uint64, value uint64) error {
@@ -271,6 +273,16 @@ func assembleI(t assembler.ResolvedToken) (uint8, error) {
 	return (op << 4) | imm, nil
 }
 
+func assembleJumpImm(t assembler.ResolvedToken) (uint8, error) {
+	if len(t.Args) != 1 {
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
+	}
+
+	// Ugly code in the name of reuse.
+	t.Args[0] = uint64(int8(signExtend8(uint8(t.Args[0]))) - int8(t.Address))
+	return assembleI(t)
+}
+
 func assembleJr(t assembler.ResolvedToken) (uint8, error) {
 	if len(t.Args) != 1 {
 		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), "jr")
@@ -286,7 +298,9 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 	switch string(t.Value) {
 	case "brzr", "ld", "st", "movr", "add", "sub", "and", "or", "not", "slr", "srr":
 		bin, err = assembleR(t)
-	case "brzi", "ji", "movh", "movl":
+	case "brzi", "ji":
+		bin, err = assembleJumpImm(t)
+	case "movh", "movl":
 		bin, err = assembleI(t)
 	case "jr":
 		bin, err = assembleJr(t)

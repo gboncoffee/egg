@@ -1,9 +1,5 @@
 // Package reduxv implements a REDUX-V machine for EGG.
 //
-// Due to the (lack of) bit size, almost all jumps would need to be adjusted
-// manually. So this assembler just don't fix relative-addressing and you're up
-// to your own to manually compute all jumps. Good luck.
-//
 // Opcode 0101 (ebreak) performs a BREAK and 0110 (ecall) performs a CALL.
 package reduxv
 
@@ -21,6 +17,12 @@ type ReduxV struct {
 	registers [4]uint8
 	mem       [math.MaxUint8]uint8
 	pc        uint8
+}
+
+func signExtend8(n uint8) uint8 {
+	sign := n >> 3
+	sign8 := uint8(^(sign - 1)) << 4
+	return n | sign8
 }
 
 func (m *ReduxV) GetCurrentInstructionAddress() uint64 {
@@ -265,12 +267,24 @@ func assembleI(t assembler.ResolvedToken) (uint8, error) {
 	return (op << 4) | imm, nil
 }
 
+func assembleJi(t assembler.ResolvedToken) (uint8, error) {
+	if len(t.Args) != 1 {
+		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
+	}
+
+	// Ugly code in the name of reuse.
+	t.Args[0] = uint64(int8(signExtend8(uint8(t.Args[0]))) - int8(t.Address))
+	return assembleI(t)
+}
+
 func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) error {
 	bin := uint8(0)
 	var err error
 
 	switch string(t.Value) {
-	case "ji", "addi":
+	case "ji":
+		bin, err = assembleJi(t)
+	case "addi":
 		bin, err = assembleI(t)
 	case "brzr", "ld", "st", "not", "and", "or", "xor", "add", "sub", "slr", "srr":
 		bin, err = assembleR(t)
