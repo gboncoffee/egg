@@ -15,7 +15,7 @@ import (
 
 type ReduxV struct {
 	registers [4]uint8
-	mem       [math.MaxUint8]uint8
+	mem       [math.MaxUint8 + 1]uint8
 	pc        uint8
 }
 
@@ -126,14 +126,14 @@ func (m *ReduxV) NextInstruction() (*machine.Call, error) {
 			m.pc = uint8(rbv) - 1
 		}
 	case 0x1:
-		m.pc += uint8(imm) - 1
+		m.pc += signExtend8(uint8(imm)) - 1
 	case 0x2:
 		mem, _ := m.GetMemory(rbv)
 		m.SetRegister(uint64(ra), uint64(mem))
 	case 0x3:
 		m.SetMemory(rbv, uint8(rav))
 	case 0x4:
-		m.SetRegister(0, uint64(uint8(r0v)+imm))
+		m.SetRegister(0, uint64(uint8(r0v)+signExtend8(imm)))
 	case 0x5:
 		m.pc++
 		return &machine.Call{

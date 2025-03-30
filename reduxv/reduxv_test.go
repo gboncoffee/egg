@@ -101,20 +101,20 @@ func TestReduxV(t *testing.T) {
 	assertRegister(1, 0, "sub r1 for load/store")
 
 	m.NextInstruction()
-	assertRegister(0, 0x0f, "addi address")
+	assertRegister(0, 0xff, "addi address")
 
 	m.NextInstruction()
-	assertRegister(1, 0x0f, "add r1, r0 address")
+	assertRegister(1, 0xff, "add r1, r0 address")
 
 	m.NextInstruction()
 	assertRegister(0, 0, "zero r0 for value")
 
 	m.NextInstruction()
-	assertRegister(0, 0x0e, "addi value")
+	assertRegister(0, 0xfe, "addi value")
 
 	m.NextInstruction()
-	mem, _ := m.GetMemory(0x0f)
-	if mem != 0x0e {
+	mem, _ := m.GetMemory(0xff)
+	if mem != 0xfe {
 		t.Fatalf("st failed")
 	}
 
@@ -122,7 +122,7 @@ func TestReduxV(t *testing.T) {
 	assertRegister(0, 0, "sub for load test")
 
 	m.NextInstruction()
-	assertRegister(0, 0x0e, "ld")
+	assertRegister(0, 0xfe, "ld")
 
 	call, _ := m.NextInstruction()
 	if call == nil || call.Number != machine.SYS_BREAK {
