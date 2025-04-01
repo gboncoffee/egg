@@ -324,12 +324,13 @@ func assemble(t []assembler.ResolvedToken) ([]uint8, error) {
 			if err != nil {
 				return nil, fmt.Errorf(machine.InterCtx.Get("%v:%v: Error assembling: %v"), *i.File, i.Line, err)
 			}
+			addr++
 		} else {
 			for _, c := range []uint8(i.Value) {
 				code[addr] = c
+				addr++
 			}
 		}
-		addr++
 	}
 
 	return code, nil
