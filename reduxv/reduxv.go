@@ -168,7 +168,7 @@ func (m *ReduxV) NextInstruction() (*machine.Call, error) {
 	case 0xd:
 		m.SetRegister(uint64(ra), rav-rbv)
 	case 0xe:
-		m.SetRegister(uint64(ra), rav<<rbv)
+		m.SetRegister(uint64(ra), (rav<<rbv)&0xff)
 	case 0xf:
 		m.SetRegister(uint64(ra), rav>>rbv)
 	}
