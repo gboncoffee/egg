@@ -14,6 +14,7 @@ import (
 	"github.com/gboncoffee/egg/reduxv"
 	"github.com/gboncoffee/egg/riscv"
 	"github.com/gboncoffee/egg/sagui"
+	"github.com/gboncoffee/egg/reduxK"
 )
 
 const VERSION = "3.3.3"
@@ -24,7 +25,8 @@ func listArchs() {
 'riscv'  - RISC-V IM, 32 bits
 'mips'   - Subset of MIPS32
 'sagui'  - Fantasy 8 bit RISC
-'reduxv' - 8 bit version of RISC-V`))
+'reduxv' - 8 bit version of RISC-V
+'reduxK' - Kaluf's version of reduxv`))
 }
 
 func version() {
@@ -110,6 +112,9 @@ func main() {
 		m = &r
 	case "reduxv":
 		var r reduxv.ReduxV
+		m = &r
+	case "reduxK":
+		var r reduxK.ReduxK
 		m = &r
 	default:
 		log.Printf(machine.InterCtx.Get("Unknown architeture: %v\n"), architeture)
