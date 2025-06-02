@@ -115,3 +115,14 @@ A interface do debugger é semelhante à do `gdb` porém bem enxuta. Use a opç�
 como no `gdb`, pois não há necessidade de iniciar um processo do sistema. Os
 comandos `next` e `continue` podem ser utilizados para iniciar o programa
 normalmente. Use o comando `help` para ver todos os comandos disponíveis.
+
+## Apoiando o projeto
+
+O EGG é utilizado ativamente para educação em ciência da computação e é mantido
+por mim e outros voluntários. Você pode apoiar nosso trabalho juntando-se a nós
+escrevendo código, ajudando com a documentação e procurando bugs.
+
+Caso queira nos apoiar financeiramente, por favor considere
+[doar para a Ucrânia](https://u24.gov.ua/) ao invés.
+
+:brazil: :ukraine:

@@ -158,7 +158,7 @@ func TestReduxK(t *testing.T) {
 		mem, _ := m.GetMemory(uint64(x))
 		if mem != uint8(x) {
 			t.Fatalf("loadv failed")
-		}	
+		}
 	}
 
 	m.NextInstruction()
@@ -167,9 +167,9 @@ func TestReduxK(t *testing.T) {
 	for x := 4; x < 7; x++ {
 		m.NextInstruction()
 		mem, _ := m.GetMemory(uint64(x))
-		if mem != uint8(x + 1) {
+		if mem != uint8(x+1) {
 			t.Fatalf("loadv failed")
-		}	
+		}
 	}
 
 	m.NextInstruction()
@@ -189,7 +189,7 @@ func TestReduxK(t *testing.T) {
 	mem, _ = m.GetMemory(0x08)
 	if mem != 8 {
 		t.Fatalf("loadv failed")
-	}	
+	}
 	mem, _ = m.GetMemory(0x09)
 	if mem != 10 {
 		t.Fatalf("loadv failed")
