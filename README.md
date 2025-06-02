@@ -113,3 +113,14 @@ The debugger interface is kinda similar to `gdb`, though much smaller. Use the
 `-d` flag to enter debugger uppon startup. There's no need of `run` command, as
 there's no process. The `next` or the `continue` commands may be used to start
 running the program normally. Use `help` to see all available commands.
+
+## Supporting the project
+
+EGG is actively used for computer science education and maintained by myself and
+other volunteers. You can support our work by joining us writing code, helping
+with the docs and checking for bugs.
+
+If you want to support us financially, please consider instead
+[donating to Ukraine](https://u24.gov.ua/).
+
+:brazil: :ukraine:

@@ -11,13 +11,13 @@ import (
 	"github.com/gboncoffee/egg/assembler"
 	"github.com/gboncoffee/egg/machine"
 	"github.com/gboncoffee/egg/mips"
+	"github.com/gboncoffee/egg/reduxK"
 	"github.com/gboncoffee/egg/reduxv"
 	"github.com/gboncoffee/egg/riscv"
 	"github.com/gboncoffee/egg/sagui"
-	"github.com/gboncoffee/egg/reduxK"
 )
 
-const VERSION = "3.3.3"
+const VERSION = "3.4.0"
 
 // Put new architetures here... (main.go:/switch architeture)
 func listArchs() {

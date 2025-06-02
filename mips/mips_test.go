@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/gboncoffee/egg/machine"
 	"github.com/gboncoffee/egg/assembler"
+	"github.com/gboncoffee/egg/machine"
 )
 
 func TestIsa(t *testing.T) {
@@ -501,7 +501,7 @@ func TestIsa(t *testing.T) {
 
 	// lb t0, t1, 0
 	m.SetMemoryChunk(0xcafebabe, []uint8{0xff, 2, 3, 4})
-	m.SetRegister(1 + 8, 0xcafebabe)
+	m.SetRegister(1+8, 0xcafebabe)
 	m.NextInstruction()
 	v, _ = m.GetRegister(0 + 8)
 	if v != 0xff_ff_ff_ff {
@@ -510,7 +510,7 @@ func TestIsa(t *testing.T) {
 
 	// lbu t0, t1, 0
 	m.SetMemoryChunk(0xcafebabe, []uint8{0xff, 2, 3, 4})
-	m.SetRegister(1 + 8, 0xcafebabe)
+	m.SetRegister(1+8, 0xcafebabe)
 	m.NextInstruction()
 	v, _ = m.GetRegister(0 + 8)
 	if v != 0xff {
@@ -519,7 +519,7 @@ func TestIsa(t *testing.T) {
 
 	// lh t0, t1, 0
 	m.SetMemoryChunk(0xcafebabe, []uint8{0xff, 0xff, 3, 4})
-	m.SetRegister(1 + 8, 0xcafebabe)
+	m.SetRegister(1+8, 0xcafebabe)
 	m.NextInstruction()
 	v, _ = m.GetRegister(0 + 8)
 	if v != 0xff_ff_ff_ff {
@@ -528,7 +528,7 @@ func TestIsa(t *testing.T) {
 
 	// lhu t0, t1, 0
 	m.SetMemoryChunk(0xcafebabe, []uint8{0xff, 0xff, 3, 4})
-	m.SetRegister(1 + 8, 0xcafebabe)
+	m.SetRegister(1+8, 0xcafebabe)
 	m.NextInstruction()
 	v, _ = m.GetRegister(0 + 8)
 	if v != 0xff_ff {
@@ -537,7 +537,7 @@ func TestIsa(t *testing.T) {
 
 	// lw t0, t1, 0
 	m.SetMemoryChunk(0xcafebabe, []uint8{1, 2, 3, 4})
-	m.SetRegister(1 + 8, 0xcafebabe)
+	m.SetRegister(1+8, 0xcafebabe)
 	m.NextInstruction()
 	v, _ = m.GetRegister(0 + 8)
 	if v != 0x04_03_02_01 {
@@ -546,8 +546,8 @@ func TestIsa(t *testing.T) {
 
 	// sb t0, t1, 0
 	m.SetMemoryChunk(0xcafebabe, []uint8{0, 0, 0, 0})
-	m.SetRegister(0 + 8, 0xdeadbeef)
-	m.SetRegister(1 + 8, 0xcafebabe)
+	m.SetRegister(0+8, 0xdeadbeef)
+	m.SetRegister(1+8, 0xcafebabe)
 	m.NextInstruction()
 	slice, _ := m.GetMemoryChunk(0xcafebabe, 4)
 	if !reflect.DeepEqual(slice, []uint8{0xef, 0, 0, 0}) {
@@ -556,8 +556,8 @@ func TestIsa(t *testing.T) {
 
 	// sh t0, t1, 0
 	m.SetMemoryChunk(0xcafebabe, []uint8{0, 0, 0, 0})
-	m.SetRegister(0 + 8, 0xdeadbeef)
-	m.SetRegister(1 + 8, 0xcafebabe)
+	m.SetRegister(0+8, 0xdeadbeef)
+	m.SetRegister(1+8, 0xcafebabe)
 	m.NextInstruction()
 	slice, _ = m.GetMemoryChunk(0xcafebabe, 4)
 	if !reflect.DeepEqual(slice, []uint8{0xef, 0xbe, 0, 0}) {
@@ -566,8 +566,8 @@ func TestIsa(t *testing.T) {
 
 	// sw t0, t1, 0
 	m.SetMemoryChunk(0xcafebabe, []uint8{0, 0, 0, 0})
-	m.SetRegister(0 + 8, 0xdeadbeef)
-	m.SetRegister(1 + 8, 0xcafebabe)
+	m.SetRegister(0+8, 0xdeadbeef)
+	m.SetRegister(1+8, 0xcafebabe)
 	m.NextInstruction()
 	slice, _ = m.GetMemoryChunk(0xcafebabe, 4)
 	if !reflect.DeepEqual(slice, []uint8{0xef, 0xbe, 0xad, 0xde}) {

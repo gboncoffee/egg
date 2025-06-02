@@ -163,7 +163,7 @@ func (m *ReduxK) NextInstruction() (*machine.Call, error) {
 			r1v, _ := m.GetRegister(1)
 			r2v, _ := m.GetRegister(2)
 			r3v, _ := m.GetRegister(3)
-			
+
 			m.SetMemory(r0v, uint8(r2v))
 			m.SetRegister(uint64(2), uint64(uint8(int8(r2v)+int8(r3v))))
 			m.SetRegister(uint64(0), uint64(uint8(int8(r0v)+int8(r1v))))
@@ -190,19 +190,19 @@ func (m *ReduxK) NextInstruction() (*machine.Call, error) {
 
 			for x := 0; x < 4; x++ {
 				regv, _ := m.GetRegister(uint64(x))
-				m.SetRegister(uint64(x), uint64(uint8(int8(regv) + int8(1))))
+				m.SetRegister(uint64(x), uint64(uint8(int8(regv)+int8(1))))
 			}
 		}
 	case 0x7:
-		if (ra == 0) {
+		if ra == 0 {
 			for x := 0; x < 4; x++ {
 				regv, _ := m.GetRegister(uint64(x))
-				m.SetRegister(uint64(x), uint64(uint8(int8(regv) + int8(uimm))))
+				m.SetRegister(uint64(x), uint64(uint8(int8(regv)+int8(uimm))))
 			}
-			break	
+			break
 		}
 
-		m.SetRegister(uint64(ra), uint64(uint8(int8(rav) + int8(uimm))))
+		m.SetRegister(uint64(ra), uint64(uint8(int8(rav)+int8(uimm))))
 	case 0x8:
 		if rbv == 0 {
 			m.SetRegister(uint64(ra), 1)
@@ -212,7 +212,7 @@ func (m *ReduxK) NextInstruction() (*machine.Call, error) {
 	case 0x9:
 		m.SetRegister(uint64(ra), rav&rbv)
 	case 0xa:
-		if (rb == 0 && ra == 0) {
+		if rb == 0 && ra == 0 {
 			m.pc++
 			return &machine.Call{
 				Number: machine.SYS_BREAK,
@@ -220,17 +220,17 @@ func (m *ReduxK) NextInstruction() (*machine.Call, error) {
 				Arg2:   0,
 			}, nil
 		}
-		
+
 		m.SetRegister(uint64(ra), rav|rbv)
 	case 0xb:
-		if (rb == 0 && ra == 0) {
-				m.pc++
-				r1v, _ := m.GetRegister(1)
-				r2v, _ := m.GetRegister(2)
-				return &machine.Call{
-					Number: r0v,
-					Arg1:   r1v,
-					Arg2:   r2v,
+		if rb == 0 && ra == 0 {
+			m.pc++
+			r1v, _ := m.GetRegister(1)
+			r2v, _ := m.GetRegister(2)
+			return &machine.Call{
+				Number: r0v,
+				Arg1:   r1v,
+				Arg2:   r2v,
 			}, nil
 		}
 
