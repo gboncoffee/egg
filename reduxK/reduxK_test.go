@@ -7,12 +7,12 @@ import (
 	"github.com/gboncoffee/egg/machine"
 )
 
-func TestReduxV(t *testing.T) {
+func TestReduxK(t *testing.T) {
 	machine.InterCtx.Init()
 	machine.InterCtx.AutoSetPreferedLocale()
 	assembler.InterCtx = &machine.InterCtx
 
-	var m ReduxV
+	var m ReduxK
 	code, _, err := m.Assemble("test.asm")
 	if err != nil {
 		t.Fatalf("Couldn't assemble: %v", err)
@@ -143,4 +143,56 @@ func TestReduxV(t *testing.T) {
 	if call == nil || call.Number != 0 || call.Arg1 != 1 || call.Arg2 != 2 {
 		t.Fatalf("Call failed: %v", call)
 	}
+
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+
+	m.NextInstruction()
+	for x := 0; x < 4; x++ {
+		assertRegister(uint64(x), 0x1, "inc on r0")
+	}
+
+	m.NextInstruction()
+	for x := 1; x < 4; x++ {
+		mem, _ := m.GetMemory(uint64(x))
+		if mem != uint8(x) {
+			t.Fatalf("loadv failed")
+		}	
+	}
+
+	m.NextInstruction()
+	assertRegister(2, 0x5, "inc")
+
+	for x := 4; x < 7; x++ {
+		m.NextInstruction()
+		mem, _ := m.GetMemory(uint64(x))
+		if mem != uint8(x + 1) {
+			t.Fatalf("loadv failed")
+		}	
+	}
+
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+	m.NextInstruction()
+
+	m.NextInstruction()
+	mem, _ = m.GetMemory(0x07)
+	if mem != 6 {
+		t.Fatalf("loadv failed")
+	}
+	mem, _ = m.GetMemory(0x08)
+	if mem != 8 {
+		t.Fatalf("loadv failed")
+	}	
+	mem, _ = m.GetMemory(0x09)
+	if mem != 10 {
+		t.Fatalf("loadv failed")
+	}
+
 }

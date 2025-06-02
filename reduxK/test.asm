@@ -57,3 +57,20 @@ ji_test:
 	add r1, r0
 	sub r0, r0
 	ecall
+
+	sub r1, r1
+	sub r2, r2
+	sub r3, r3
+	inc r0, 1
+	loadv 3
+	inc r2, 1
+	loadv 3
+	sub r0, r0
+	sub r1, r1
+	sub r2, r2
+	addi 7
+	add r2, r0
+	addi -3
+	add r1, r0
+	addi -3
+	addv 3

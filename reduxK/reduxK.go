@@ -1,6 +1,6 @@
 // Package reduxK implements a reduxK machine for EGG.
 //
-// Opcode 0101 (ebreak) performs a BREAK and 0110 (ecall) performs a CALL.
+// "or r0, r0" (ebreak) performs a BREAK and "xor r0, r0" (ecall) performs a CALL.
 package reduxK
 
 import (
@@ -212,8 +212,28 @@ func (m *ReduxK) NextInstruction() (*machine.Call, error) {
 	case 0x9:
 		m.SetRegister(uint64(ra), rav&rbv)
 	case 0xa:
+		if (rb == 0 && ra == 0) {
+			m.pc++
+			return &machine.Call{
+				Number: machine.SYS_BREAK,
+				Arg1:   0,
+				Arg2:   0,
+			}, nil
+		}
+		
 		m.SetRegister(uint64(ra), rav|rbv)
 	case 0xb:
+		if (rb == 0 && ra == 0) {
+				m.pc++
+				r1v, _ := m.GetRegister(1)
+				r2v, _ := m.GetRegister(2)
+				return &machine.Call{
+					Number: r0v,
+					Arg1:   r1v,
+					Arg2:   r2v,
+			}, nil
+		}
+
 		m.SetRegister(uint64(ra), rav^rbv)
 	case 0xc:
 		m.SetRegister(uint64(ra), uint64(uint8(int8(rav)+int8(rbv))))
@@ -324,7 +344,6 @@ func assembleJi(t assembler.ResolvedToken) (uint8, error) {
 		return 0, fmt.Errorf(machine.InterCtx.Get("wrong number of arguments for instruction '%s', expected 1 argument"), t.Value)
 	}
 
-	// Ugly code in the name of reuse.
 	t.Args[0] = uint64(int8(signExtend8(uint8(t.Args[0]))) - int8(t.Address))
 	return assembleI(t)
 }
@@ -382,6 +401,10 @@ func assembleInstruction(code []uint8, addr int, t assembler.ResolvedToken) erro
 		bin, err = assembleV(t)
 	case "inc":
 		bin, err = assembleInc(t)
+	case "ebreak":
+		bin = 0xa0
+	case "ecall":
+		bin = 0xb0
 	default:
 		return fmt.Errorf(machine.InterCtx.Get("unknown instruction: %v"), string(t.Value))
 	}
