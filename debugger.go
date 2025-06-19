@@ -127,10 +127,7 @@ func getPrintHashExpr(m machine.Machine, sym []assembler.DebuggerToken, expr str
 		return nil, fmt.Errorf(machine.InterCtx.Get("no instruction at address 0x%x"), faddr)
 	}
 
-	l = l + i
-	if l >= uint64(len(sym)) {
-		l = uint64(len(sym))
-	}
+	l = min(l+i, uint64(len(sym)))
 
 	return tokensToString(sym[i:l], info), nil
 }
@@ -176,12 +173,12 @@ func byte2ascii(b byte) rune {
 
 func printMemory(s []uint64) {
 	nLines := len(s) / 8
-	for i := 0; i < nLines; i++ {
-		for j := 0; j < 8; j++ {
+	for i := range nLines {
+		for j := range 8 {
 			fmt.Printf("0x%02x ", s[i*8+j])
 		}
 		fmt.Print("  ")
-		for j := 0; j < 8; j++ {
+		for j := range 8 {
 			fmt.Printf("%c", byte2ascii(byte(s[i*8+j])))
 		}
 		fmt.Println()
@@ -198,7 +195,7 @@ func printMemory(s []uint64) {
 			i++
 		}
 		fmt.Print("  ")
-		for i := 0; i < len(s)%8; i++ {
+		for i := range len(s) % 8 {
 			fmt.Printf("%c", byte2ascii(byte(s[nLines*8+i])))
 		}
 		fmt.Println()
@@ -417,8 +414,8 @@ func debuggerContinue(m machine.Machine, sym []assembler.DebuggerToken, breakpoi
 
 		brk := false
 		var breakpoint *Breakpoint
-		for i := 0; i < len(breakpoints); i++ {
-			if breakpoints[i].Address == pc {
+		for i, b := range breakpoints {
+			if b.Address == pc {
 				brk = true
 				breakpoint = &breakpoints[i]
 			}
@@ -491,20 +488,22 @@ func debuggerRemove(sym []assembler.DebuggerToken, breakpoints *[]Breakpoint, ar
 	}
 
 	var idx int
+	found := false
 	for i, b := range *breakpoints {
 		if b.Address == breakpoint.Address {
 			idx = i
-			goto FOUND
+			found = true
 		}
 	}
 
-	fmt.Printf(machine.InterCtx.Get("No breakpoint %v\n"), breakpoint2String(breakpoint))
-	return
+	if !found {
+		fmt.Printf(machine.InterCtx.Get("No breakpoint %v\n"), breakpoint2String(breakpoint))
+		return
+	}
 
-FOUND:
 	nBreakpoints := make([]Breakpoint, len(*breakpoints)-1)
 
-	for i := 0; i < idx; i++ {
+	for i := range idx {
 		nBreakpoints[i] = (*breakpoints)[i]
 	}
 
@@ -537,10 +536,7 @@ func getDumpExpr(m machine.Machine, expr string, prog []uint8) ([]uint8, error) 
 			return nil, fmt.Errorf(machine.InterCtx.Get("%v is not an unsigned number"), length)
 		}
 
-		end := of + l
-		if end > uint64(len(prog)) {
-			end = uint64(len(prog))
-		}
+		end := min(of+l, uint64(len(prog)))
 
 		return prog[of:end], nil
 	} else {
@@ -759,7 +755,9 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 			case "set", "s":
 				debuggerSet(m, wsl[1:])
 			case "exit", "e", "quit", "q":
-				goto EXIT
+				fmt.Println("")
+				fmt.Println(machine.InterCtx.Get("bye!"))
+				return
 			case "ping":
 				fmt.Println("pong!")
 			default:
@@ -774,6 +772,5 @@ func debugMachine(m machine.Machine, sym []assembler.DebuggerToken, prog []uint8
 	}
 
 	fmt.Println("")
-EXIT:
 	fmt.Println(machine.InterCtx.Get("bye!"))
 }
