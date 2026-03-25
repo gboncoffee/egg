@@ -13,6 +13,7 @@ import (
 	"github.com/gboncoffee/egg/mips"
 	"github.com/gboncoffee/egg/reduxK"
 	"github.com/gboncoffee/egg/reduxv"
+	"github.com/gboncoffee/egg/reduxPia"
 	"github.com/gboncoffee/egg/riscv"
 	"github.com/gboncoffee/egg/sagui"
 )
@@ -22,11 +23,12 @@ const VERSION = "3.4.0"
 // Put new architetures here... (main.go:/switch architeture)
 func listArchs() {
 	fmt.Println(machine.InterCtx.Get(`Currently supported architetures:
-'riscv'  - RISC-V IM, 32 bits
-'mips'   - Subset of MIPS32
-'sagui'  - Fantasy 8 bit RISC
-'reduxv' - 8 bit version of RISC-V
-'reduxK' - Kaluf's version of reduxv`))
+'riscv'   - RISC-V IM, 32 bits
+'mips'    - Subset of MIPS32
+'sagui'   - Fantasy 8 bit RISC
+'reduxv'  - 8 bit version of RISC-V
+'reduxK'  - Kaluf's version of reduxv
+'reduxPia - Gabriel's version of reduxv (REDUX-PIÁ)`))
 }
 
 func version() {
@@ -115,6 +117,9 @@ func main() {
 		m = &r
 	case "reduxK":
 		var r reduxK.ReduxK
+		m = &r
+	case "reduxPia":
+		var r reduxPia.ReduxPia
 		m = &r
 	default:
 		log.Printf(machine.InterCtx.Get("Unknown architeture: %v\n"), architeture)
