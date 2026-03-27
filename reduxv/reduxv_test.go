@@ -12,7 +12,8 @@ func TestReduxV(t *testing.T) {
 	_ = machine.InterCtx.AutoSetPreferedLocale()
 	assembler.InterCtx = &machine.InterCtx
 
-	var m ReduxV
+	m := ReduxV()
+
 	code, _, err := m.Assemble("test.asm")
 	if err != nil {
 		t.Fatalf("Couldn't assemble: %v", err)

@@ -113,14 +113,11 @@ func main() {
 		var r sagui.Sagui
 		m = &r
 	case "reduxv":
-		var r reduxv.ReduxV
-		m = &r
+		m = reduxv.ReduxV()
 	case "reduxK":
-		var r reduxK.ReduxK
-		m = &r
+		m = reduxK.ReduxK()
 	case "reduxPia":
-		var r reduxPia.ReduxPia
-		m = &r
+		m = reduxPia.ReduxPia()
 	default:
 		log.Printf(machine.InterCtx.Get("Unknown architeture: %v\n"), architeture)
 		listArchs()
