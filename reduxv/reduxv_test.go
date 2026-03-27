@@ -9,7 +9,7 @@ import (
 
 func TestReduxV(t *testing.T) {
 	machine.InterCtx.Init()
-	machine.InterCtx.AutoSetPreferedLocale()
+	_ = machine.InterCtx.AutoSetPreferedLocale()
 	assembler.InterCtx = &machine.InterCtx
 
 	var m ReduxV
@@ -32,7 +32,7 @@ func TestReduxV(t *testing.T) {
 
 	assertBranch := func(name string) {
 		pc := m.GetCurrentInstructionAddress()
-		m.NextInstruction()
+		_, _ = m.NextInstruction()
 		if m.GetCurrentInstructionAddress() == pc+1 {
 			t.Fatalf("Didn't branched on %v", name)
 		}
@@ -40,88 +40,88 @@ func TestReduxV(t *testing.T) {
 
 	assertDontBranch := func(name string) {
 		pc := m.GetCurrentInstructionAddress()
-		m.NextInstruction()
+		_, _ = m.NextInstruction()
 		if m.GetCurrentInstructionAddress() != pc+1 {
 			t.Fatalf("Branched on %v", name)
 		}
 	}
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 5, "prepare for jump")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(1, 5, "copy addr")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0, "zero r0 for branching")
 
 	assertBranch("brzr")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 1, "addi 1 for branching")
 
 	assertDontBranch("brzr")
 
 	assertBranch("ji")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0, "sub test")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 1, "not test")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 2, "add test")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(1, 0, "sub for logical test")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(1, 1, "not for logical test")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 3, "or test")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 1, "and test")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 2, "sll test")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 3, "xor test")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 1, "srr test")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0, "sub r0 for load/store")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(1, 0, "sub r1 for load/store")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0xff, "addi address")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(1, 0xff, "add r1, r0 address")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0, "zero r0 for value")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0xfe, "addi value")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	mem, _ := m.GetMemory(0xff)
 	if mem != 0xfe {
 		t.Fatalf("st failed")
 	}
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0, "sub for load test")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0xfe, "ld")
 
 	call, _ := m.NextInstruction()
@@ -129,15 +129,15 @@ func TestReduxV(t *testing.T) {
 		t.Fatalf("Break failed: %v", call)
 	}
 
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 
 	call, _ = m.NextInstruction()
 	if call == nil || call.Number != 0 || call.Arg1 != 1 || call.Arg2 != 2 {

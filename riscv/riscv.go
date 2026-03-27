@@ -220,7 +220,7 @@ func (m *RiscV) execArithmetic(rd uint8, rs1 uint8, rs2 uint8, func3 uint8, func
 		}
 	}
 
-	m.SetRegister(uint64(rd), uint64(r))
+	_ = m.SetRegister(uint64(rd), uint64(r))
 
 	m.pc += 4
 
@@ -264,7 +264,7 @@ func (m *RiscV) execImmArithmetic(rd uint8, rs1 uint8, imm uint32, func3 uint8) 
 		r = rs1v & immv
 	}
 
-	m.SetRegister(uint64(rd), uint64(r))
+	_ = m.SetRegister(uint64(rd), uint64(r))
 
 	m.pc += 4
 }
@@ -302,7 +302,7 @@ func (m *RiscV) execLoad(rd uint8, rs1 uint8, imm uint32, func3 uint8) {
 		v = uint32(mem[0]) | (uint32(mem[1]) << 8)
 	}
 
-	m.SetRegister(uint64(rd), uint64(v))
+	_ = m.SetRegister(uint64(rd), uint64(v))
 
 	m.pc += 4
 }
@@ -315,10 +315,10 @@ func (m *RiscV) execStore(rs1 uint8, rs2 uint8, imm uint32, func3 uint8) {
 
 	switch func3 {
 	case 0x0:
-		m.SetMemory(addr, uint8(rs2v))
+		_ = m.SetMemory(addr, uint8(rs2v))
 	case 0x1:
 		v := []uint8{uint8(rs2v), uint8(rs2v >> 8)}
-		m.SetMemoryChunk(addr, v)
+		_ = m.SetMemoryChunk(addr, v)
 	case 0x2:
 		v := []uint8{
 			uint8(rs2v),
@@ -326,7 +326,7 @@ func (m *RiscV) execStore(rs1 uint8, rs2 uint8, imm uint32, func3 uint8) {
 			uint8(rs2v >> 16),
 			uint8(rs2v >> 24),
 		}
-		m.SetMemoryChunk(addr, v)
+		_ = m.SetMemoryChunk(addr, v)
 	}
 
 	m.pc += 4
@@ -376,25 +376,25 @@ func (m *RiscV) execBranch(rs1 uint8, rs2 uint8, imm uint32, func3 uint8) {
 }
 
 func (m *RiscV) execJal(rd uint8, imm uint32) {
-	m.SetRegister(uint64(rd), uint64(m.pc+4))
+	_ = m.SetRegister(uint64(rd), uint64(m.pc+4))
 
 	r := int32(m.pc) + int32(imm)
 	m.pc = uint32(r)
 }
 
 func (m *RiscV) execJalr(rd uint8, rs1 uint8, imm uint32) {
-	m.SetRegister(uint64(rd), uint64(m.pc+4))
+	_ = m.SetRegister(uint64(rd), uint64(m.pc+4))
 	rs1v, _ := m.GetRegister(uint64(rs1))
 	m.pc = uint32(rs1v) + imm
 }
 
 func (m *RiscV) execLui(rd uint8, imm uint32) {
-	m.SetRegister(uint64(rd), uint64(imm))
+	_ = m.SetRegister(uint64(rd), uint64(imm))
 	m.pc += 4
 }
 
 func (m *RiscV) execAuipc(rd uint8, imm uint32) {
-	m.SetRegister(uint64(rd), uint64(m.pc)+uint64(imm))
+	_ = m.SetRegister(uint64(rd), uint64(m.pc)+uint64(imm))
 	m.pc += 4
 }
 

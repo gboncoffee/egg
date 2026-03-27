@@ -152,11 +152,11 @@ func (m *ReduxK) NextInstruction() (*machine.Call, error) {
 		m.pc += signExtend8(uint8(imm)) - 1
 	case 0x2:
 		mem, _ := m.GetMemory(rbv)
-		m.SetRegister(uint64(ra), uint64(mem))
+		_ = m.SetRegister(uint64(ra), uint64(mem))
 	case 0x3:
-		m.SetMemory(rbv, uint8(rav))
+		_ = m.SetMemory(rbv, uint8(rav))
 	case 0x4:
-		m.SetRegister(0, uint64(uint8(r0v)+signExtend8(imm)))
+		_ = m.SetRegister(0, uint64(uint8(r0v)+signExtend8(imm)))
 	case 0x5:
 		for x := int8(0); x < int8(sizev); x++ {
 			r0v, _ := m.GetRegister(0)
@@ -164,53 +164,53 @@ func (m *ReduxK) NextInstruction() (*machine.Call, error) {
 			r2v, _ := m.GetRegister(2)
 			r3v, _ := m.GetRegister(3)
 
-			m.SetMemory(r0v, uint8(r2v))
-			m.SetRegister(uint64(2), uint64(uint8(int8(r2v)+int8(r3v))))
-			m.SetRegister(uint64(0), uint64(uint8(int8(r0v)+int8(r1v))))
+			_ = m.SetMemory(r0v, uint8(r2v))
+			_ = m.SetRegister(uint64(2), uint64(uint8(int8(r2v)+int8(r3v))))
+			_ = m.SetRegister(uint64(0), uint64(uint8(int8(r0v)+int8(r1v))))
 		}
 	case 0x6:
 		for x := int8(0); x < int8(sizev); x++ {
 			r0v, _ := m.GetRegister(0)
 			memr0, _ := m.GetMemory(r0v)
-			m.SetAuxRegister(0, uint64(memr0))
+			_ = m.SetAuxRegister(0, uint64(memr0))
 
 			r1v, _ := m.GetRegister(1)
 			memr1, _ := m.GetMemory(r1v)
-			m.SetAuxRegister(1, uint64(memr1))
+			_ = m.SetAuxRegister(1, uint64(memr1))
 
 			rx, _ := m.GetAuxRegister(0)
 			ry, _ := m.GetAuxRegister(1)
 
-			m.SetRegister(uint64(3), uint64(uint8(int8(rx)+int8(ry))))
+			_ = m.SetRegister(uint64(3), uint64(uint8(int8(rx)+int8(ry))))
 
 			r2v, _ := m.GetRegister(2)
 			r3v, _ := m.GetRegister(3)
 
-			m.SetMemory(r2v, uint8(r3v))
+			_ = m.SetMemory(r2v, uint8(r3v))
 
 			for x := 0; x < 4; x++ {
 				regv, _ := m.GetRegister(uint64(x))
-				m.SetRegister(uint64(x), uint64(uint8(int8(regv)+int8(1))))
+				_ = m.SetRegister(uint64(x), uint64(uint8(int8(regv)+int8(1))))
 			}
 		}
 	case 0x7:
 		if ra == 0 {
 			for x := 0; x < 4; x++ {
 				regv, _ := m.GetRegister(uint64(x))
-				m.SetRegister(uint64(x), uint64(uint8(int8(regv)+int8(uimm))))
+				_ = m.SetRegister(uint64(x), uint64(uint8(int8(regv)+int8(uimm))))
 			}
 			break
 		}
 
-		m.SetRegister(uint64(ra), uint64(uint8(int8(rav)+int8(uimm))))
+		_ = m.SetRegister(uint64(ra), uint64(uint8(int8(rav)+int8(uimm))))
 	case 0x8:
 		if rbv == 0 {
-			m.SetRegister(uint64(ra), 1)
+			_ = m.SetRegister(uint64(ra), 1)
 		} else {
-			m.SetRegister(uint64(ra), 0)
+			_ = m.SetRegister(uint64(ra), 0)
 		}
 	case 0x9:
-		m.SetRegister(uint64(ra), rav&rbv)
+		_ = m.SetRegister(uint64(ra), rav&rbv)
 	case 0xa:
 		if rb == 0 && ra == 0 {
 			m.pc++
@@ -221,7 +221,7 @@ func (m *ReduxK) NextInstruction() (*machine.Call, error) {
 			}, nil
 		}
 
-		m.SetRegister(uint64(ra), rav|rbv)
+		_ = m.SetRegister(uint64(ra), rav|rbv)
 	case 0xb:
 		if rb == 0 && ra == 0 {
 			m.pc++
@@ -234,15 +234,15 @@ func (m *ReduxK) NextInstruction() (*machine.Call, error) {
 			}, nil
 		}
 
-		m.SetRegister(uint64(ra), rav^rbv)
+		_ = m.SetRegister(uint64(ra), rav^rbv)
 	case 0xc:
-		m.SetRegister(uint64(ra), uint64(uint8(int8(rav)+int8(rbv))))
+		_ = m.SetRegister(uint64(ra), uint64(uint8(int8(rav)+int8(rbv))))
 	case 0xd:
-		m.SetRegister(uint64(ra), uint64(uint8(int8(rav)-int8(rbv))))
+		_ = m.SetRegister(uint64(ra), uint64(uint8(int8(rav)-int8(rbv))))
 	case 0xe:
-		m.SetRegister(uint64(ra), (rav<<rbv)&0xff)
+		_ = m.SetRegister(uint64(ra), (rav<<rbv)&0xff)
 	case 0xf:
-		m.SetRegister(uint64(ra), rav>>rbv)
+		_ = m.SetRegister(uint64(ra), rav>>rbv)
 	}
 
 	m.pc++

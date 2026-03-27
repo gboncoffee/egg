@@ -129,11 +129,11 @@ func (m *ReduxV) NextInstruction() (*machine.Call, error) {
 		m.pc += signExtend8(uint8(imm)) - 1
 	case 0x2:
 		mem, _ := m.GetMemory(rbv)
-		m.SetRegister(uint64(ra), uint64(mem))
+		_ = m.SetRegister(uint64(ra), uint64(mem))
 	case 0x3:
-		m.SetMemory(rbv, uint8(rav))
+		_ = m.SetMemory(rbv, uint8(rav))
 	case 0x4:
-		m.SetRegister(0, uint64(uint8(r0v)+signExtend8(imm)))
+		_ = m.SetRegister(0, uint64(uint8(r0v)+signExtend8(imm)))
 	case 0x5:
 		m.pc++
 		return &machine.Call{
@@ -153,24 +153,24 @@ func (m *ReduxV) NextInstruction() (*machine.Call, error) {
 	// 0x7 not implemented.
 	case 0x8:
 		if rbv == 0 {
-			m.SetRegister(uint64(ra), 1)
+			_ = m.SetRegister(uint64(ra), 1)
 		} else {
-			m.SetRegister(uint64(ra), 0)
+			_ = m.SetRegister(uint64(ra), 0)
 		}
 	case 0x9:
-		m.SetRegister(uint64(ra), rav&rbv)
+		_ = m.SetRegister(uint64(ra), rav&rbv)
 	case 0xa:
-		m.SetRegister(uint64(ra), rav|rbv)
+		_ = m.SetRegister(uint64(ra), rav|rbv)
 	case 0xb:
-		m.SetRegister(uint64(ra), rav^rbv)
+		_ = m.SetRegister(uint64(ra), rav^rbv)
 	case 0xc:
-		m.SetRegister(uint64(ra), uint64(uint8(int8(rav)+int8(rbv))))
+		_ = m.SetRegister(uint64(ra), uint64(uint8(int8(rav)+int8(rbv))))
 	case 0xd:
-		m.SetRegister(uint64(ra), uint64(uint8(int8(rav)-int8(rbv))))
+		_ = m.SetRegister(uint64(ra), uint64(uint8(int8(rav)-int8(rbv))))
 	case 0xe:
-		m.SetRegister(uint64(ra), (rav<<rbv)&0xff)
+		_ = m.SetRegister(uint64(ra), (rav<<rbv)&0xff)
 	case 0xf:
-		m.SetRegister(uint64(ra), rav>>rbv)
+		_ = m.SetRegister(uint64(ra), rav>>rbv)
 	}
 
 	m.pc++

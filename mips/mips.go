@@ -208,11 +208,11 @@ func (m *Mips) execSpecial(rs, rt, rd, shamt, funct uint8) {
 	// div
 	case 0x18:
 		res := rsv64 * rtv64
-		m.SetRegister(HI, uint64(res>>32))
-		m.SetRegister(LO, uint64(res&0x00000000ffffffff))
+		_ = m.SetRegister(HI, uint64(res>>32))
+		_ = m.SetRegister(LO, uint64(res&0x00000000ffffffff))
 	case 0x1a:
-		m.SetRegister(HI, uint64(rsv%rtv))
-		m.SetRegister(LO, uint64(rsv/rtv))
+		_ = m.SetRegister(HI, uint64(rsv%rtv))
+		_ = m.SetRegister(LO, uint64(rsv/rtv))
 	// mfhi
 	// mflo
 	// mthi
@@ -224,9 +224,9 @@ func (m *Mips) execSpecial(rs, rt, rd, shamt, funct uint8) {
 		lo, _ := m.GetRegister(LO)
 		r = int32(lo)
 	case 0x11:
-		m.SetRegister(HI, uint64(rsv))
+		_ = m.SetRegister(HI, uint64(rsv))
 	case 0x13:
-		m.SetRegister(LO, uint64(rsv))
+		_ = m.SetRegister(LO, uint64(rsv))
 	// movz
 	// movn
 	case 0xa:
@@ -239,7 +239,7 @@ func (m *Mips) execSpecial(rs, rt, rd, shamt, funct uint8) {
 		}
 	}
 
-	m.SetRegister(uint64(rd), uint64(r))
+	_ = m.SetRegister(uint64(rd), uint64(r))
 }
 
 func (m *Mips) execSpecial2(rs, rd, funct uint8) {
@@ -256,7 +256,7 @@ func (m *Mips) execSpecial2(rs, rd, funct uint8) {
 		r = int32(bits.LeadingZeros32(uint32(^rsv)))
 	}
 
-	m.SetRegister(uint64(rd), uint64(r))
+	_ = m.SetRegister(uint64(rd), uint64(r))
 }
 
 func (m *Mips) execSpecial3(rs, rd, shamt, funct uint8) {
@@ -282,7 +282,7 @@ func (m *Mips) execSpecial3(rs, rd, shamt, funct uint8) {
 		}
 	}
 
-	m.SetRegister(uint64(rd), uint64(r))
+	_ = m.SetRegister(uint64(rd), uint64(r))
 }
 
 func (m *Mips) execRegimm(rs, shamt uint8, imm uint32) {
@@ -343,53 +343,53 @@ func (m *Mips) executeBlez(rs uint8, imm uint32) {
 func (m *Mips) executeAddi(rs, rt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	r := int32(rsv64) + int32(imm)
-	m.SetRegister(uint64(rt), uint64(r))
+	_ = m.SetRegister(uint64(rt), uint64(r))
 }
 
 func (m *Mips) executeAddiu(rs, rt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	r := uint32(rsv64) + imm
-	m.SetRegister(uint64(rt), uint64(r))
+	_ = m.SetRegister(uint64(rt), uint64(r))
 }
 
 func (m *Mips) executeAndi(rs, rt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	r := uint32(rsv64) & imm
-	m.SetRegister(uint64(rt), uint64(r))
+	_ = m.SetRegister(uint64(rt), uint64(r))
 }
 
 func (m *Mips) executeOri(rs, rt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	r := uint32(rsv64) | imm
-	m.SetRegister(uint64(rt), uint64(r))
+	_ = m.SetRegister(uint64(rt), uint64(r))
 }
 
 func (m *Mips) executeXori(rs, rt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	r := uint32(rsv64) ^ imm
-	m.SetRegister(uint64(rt), uint64(r))
+	_ = m.SetRegister(uint64(rt), uint64(r))
 }
 
 func (m *Mips) executeSlti(rs, rt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	if int32(rsv64) < int32(imm) {
-		m.SetRegister(uint64(rt), 1)
+		_ = m.SetRegister(uint64(rt), 1)
 	} else {
-		m.SetRegister(uint64(rt), 0)
+		_ = m.SetRegister(uint64(rt), 0)
 	}
 }
 
 func (m *Mips) executeSltiu(rs, rt uint8, imm uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	if uint32(rsv64) < imm {
-		m.SetRegister(uint64(rt), 1)
+		_ = m.SetRegister(uint64(rt), 1)
 	} else {
-		m.SetRegister(uint64(rt), 0)
+		_ = m.SetRegister(uint64(rt), 0)
 	}
 }
 
 func (m *Mips) executeLui(rt uint8, imm uint32) {
-	m.SetRegister(uint64(rt), uint64(imm<<16))
+	_ = m.SetRegister(uint64(rt), uint64(imm<<16))
 }
 
 func (m *Mips) executeJ(imm uint32) {
@@ -399,7 +399,7 @@ func (m *Mips) executeJ(imm uint32) {
 }
 
 func (m *Mips) executeJal(imm uint32) {
-	m.SetRegister(31, uint64(m.pc+4))
+	_ = m.SetRegister(31, uint64(m.pc+4))
 	t := (m.pc + 4) & 0xf0000000
 	t = t | (imm << 2)
 	m.pc = t - 4
@@ -414,14 +414,14 @@ func (m *Mips) executeLb(rs, rt uint8, off uint32) {
 	sign = (^(sign - 1)) << 8
 	r := uint64(memb) | sign
 
-	m.SetRegister(uint64(rt), r)
+	_ = m.SetRegister(uint64(rt), r)
 }
 
 func (m *Mips) executeLbu(rs, rt uint8, off uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	mem, _ := m.GetMemory(uint64(uint32(rsv64) + off))
 
-	m.SetRegister(uint64(rt), uint64(mem))
+	_ = m.SetRegister(uint64(rt), uint64(mem))
 }
 
 func (m *Mips) executeLh(rs, rt uint8, off uint32) {
@@ -435,7 +435,7 @@ func (m *Mips) executeLh(rs, rt uint8, off uint32) {
 	sign = (^(sign - 1)) << 16
 	r := uint64(memb | sign)
 
-	m.SetRegister(uint64(rt), r)
+	_ = m.SetRegister(uint64(rt), r)
 }
 
 func (m *Mips) executeLhu(rs, rt uint8, off uint32) {
@@ -444,7 +444,7 @@ func (m *Mips) executeLhu(rs, rt uint8, off uint32) {
 	mem := memSlice[0]
 	mem2 := memSlice[1]
 
-	m.SetRegister(uint64(rt), uint64(mem)|(uint64(mem2)<<8))
+	_ = m.SetRegister(uint64(rt), uint64(mem)|(uint64(mem2)<<8))
 }
 
 func (m *Mips) executeLw(rs, rt uint8, off uint32) {
@@ -455,7 +455,7 @@ func (m *Mips) executeLw(rs, rt uint8, off uint32) {
 	mem3 := memSlice[2]
 	mem4 := memSlice[3]
 
-	m.SetRegister(uint64(rt), uint64(mem)|(uint64(mem2)<<8)|(uint64(mem3)<<16)|(uint64(mem4)<<24))
+	_ = m.SetRegister(uint64(rt), uint64(mem)|(uint64(mem2)<<8)|(uint64(mem3)<<16)|(uint64(mem4)<<24))
 }
 
 func (m *Mips) executeLwl(rs, rt uint8, off uint32) {
@@ -465,7 +465,7 @@ func (m *Mips) executeLwl(rs, rt uint8, off uint32) {
 	mem := memSlice[0]
 	mem2 := memSlice[1]
 
-	m.SetRegister(uint64(rt), ((uint64(mem)|(uint64(mem2)<<8))<<16)|(rtv64&0xffff))
+	_ = m.SetRegister(uint64(rt), ((uint64(mem)|(uint64(mem2)<<8))<<16)|(rtv64&0xffff))
 }
 
 func (m *Mips) executeLwr(rs, rt uint8, off uint32) {
@@ -475,32 +475,32 @@ func (m *Mips) executeLwr(rs, rt uint8, off uint32) {
 	mem := memSlice[0]
 	mem2 := memSlice[1]
 
-	m.SetRegister(uint64(rt), (uint64(mem)|(uint64(mem2)<<8))|(rtv64&0xffff0000))
+	_ = m.SetRegister(uint64(rt), (uint64(mem)|(uint64(mem2)<<8))|(rtv64&0xffff0000))
 }
 
 func (m *Mips) executeSb(rs, rt uint8, off uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
 
-	m.SetMemory(uint64(uint32(rsv64)+off), uint8(rtv64&0xff))
+	_ = m.SetMemory(uint64(uint32(rsv64)+off), uint8(rtv64&0xff))
 }
 
 func (m *Mips) executeSh(rs, rt uint8, off uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
 
-	m.SetMemory(uint64(uint32(rsv64)+off), uint8(rtv64&0xff))
-	m.SetMemory(uint64(uint32(rsv64)+off)+1, uint8((rtv64&0xff00)>>8))
+	_ = m.SetMemory(uint64(uint32(rsv64)+off), uint8(rtv64&0xff))
+	_ = m.SetMemory(uint64(uint32(rsv64)+off)+1, uint8((rtv64&0xff00)>>8))
 }
 
 func (m *Mips) executeSw(rs, rt uint8, off uint32) {
 	rsv64, _ := m.GetRegister(uint64(rs))
 	rtv64, _ := m.GetRegister(uint64(rt))
 
-	m.SetMemory(uint64(uint32(rsv64)+off), uint8(rtv64&0xff))
-	m.SetMemory(uint64(uint32(rsv64)+off)+1, uint8((rtv64&0xff00)>>8))
-	m.SetMemory(uint64(uint32(rsv64)+off)+2, uint8((rtv64&0xff0000)>>16))
-	m.SetMemory(uint64(uint32(rsv64)+off)+3, uint8((rtv64&0xff000000)>>24))
+	_ = m.SetMemory(uint64(uint32(rsv64)+off), uint8(rtv64&0xff))
+	_ = m.SetMemory(uint64(uint32(rsv64)+off)+1, uint8((rtv64&0xff00)>>8))
+	_ = m.SetMemory(uint64(uint32(rsv64)+off)+2, uint8((rtv64&0xff0000)>>16))
+	_ = m.SetMemory(uint64(uint32(rsv64)+off)+3, uint8((rtv64&0xff000000)>>24))
 }
 
 func (m *Mips) execute(i uint32) (*machine.Call, error) {

@@ -31,12 +31,12 @@ func breakpoint2String(breakpoint Breakpoint) string {
 	var s strings.Builder
 	if breakpoint.File != nil {
 		s.WriteString(*breakpoint.File)
-		s.WriteString(fmt.Sprintf(":%v ", breakpoint.Line))
+		fmt.Fprintf(&s, ":%v ", breakpoint.Line)
 	}
 	if breakpoint.Label != "" {
-		s.WriteString(fmt.Sprintf(machine.InterCtx.Get("(Label %v) "), breakpoint.Label))
+		fmt.Fprintf(&s, machine.InterCtx.Get("(Label %v) "), breakpoint.Label)
 	}
-	s.WriteString(fmt.Sprintf("0x%x", breakpoint.Address))
+	fmt.Fprintf(&s, "0x%x", breakpoint.Address)
 
 	return s.String()
 }
@@ -52,16 +52,16 @@ func tokensToString(sym []assembler.DebuggerToken, info *machine.ArchitectureInf
 	for i, tok := range sym {
 		var build strings.Builder
 
-		build.WriteString(fmt.Sprintf("%v:%v: ", *tok.File, tok.Line))
+		fmt.Fprintf(&build, "%v:%v: ", *tok.File, tok.Line)
 		switch info.WordWidth {
 		case 8:
-			build.WriteString(fmt.Sprintf("0x%02x: ", tok.Address))
+			fmt.Fprintf(&build, "0x%02x: ", tok.Address)
 		case 16:
-			build.WriteString(fmt.Sprintf("0x%04x: ", tok.Address))
+			fmt.Fprintf(&build, "0x%04x: ", tok.Address)
 		case 32:
-			build.WriteString(fmt.Sprintf("0x%08x: ", tok.Address))
+			fmt.Fprintf(&build, "0x%08x: ", tok.Address)
 		default:
-			build.WriteString(fmt.Sprintf("0x%016x: ", tok.Address))
+			fmt.Fprintf(&build, "0x%016x: ", tok.Address)
 		}
 		if tok.Label != "" {
 			build.WriteString(tok.Label)
@@ -289,7 +289,7 @@ func ioCall(m machine.Machine, call *machine.Call, in *bufio.Reader) {
 			return
 		}
 
-		m.SetMemoryChunk(addr, []uint8(buf))
+		_ = m.SetMemoryChunk(addr, []uint8(buf))
 	} else {
 		addr := call.Arg1
 		size := call.Arg2
@@ -592,7 +592,7 @@ func debuggerDump(m machine.Machine, args []string, prog []uint8) {
 		fmt.Printf(machine.InterCtx.Get("Error while writing to %s: %v\n"), file, err)
 	}
 
-	f.Close()
+	_ = f.Close()
 }
 
 func debuggerRewind(m machine.Machine, prog []uint8) {

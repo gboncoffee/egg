@@ -11,17 +11,17 @@ import (
 
 func TestRegister(t *testing.T) {
 	var m RiscV
-	m.SetRegister(1, 39)
+	_ = m.SetRegister(1, 39)
 	v, err := m.GetRegister(1)
 	if v != 39 || err != nil {
 		t.Fatalf("Error getting register 1: %d, %v", v, err)
 	}
-	m.SetRegister(0, 39)
+	_ = m.SetRegister(0, 39)
 	v, err = m.GetRegister(0)
 	if v != 0 || err != nil {
 		t.Fatalf("Error getting register 0: %d, %v", v, err)
 	}
-	m.SetRegister(31, 42)
+	_ = m.SetRegister(31, 42)
 	v, err = m.GetRegister(31)
 	if v != 42 || err != nil {
 		t.Fatalf("Error getting register 31: %d, %v", v, err)
@@ -209,7 +209,7 @@ func (m *RiscV) assertRegister(t *testing.T, v string, r uint64, s string) {
 
 func (m *RiscV) ensureBranch(t *testing.T, i string) {
 	pc := m.pc
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	if pc == m.pc-4 {
 		t.Fatalf("%s didn't branch correctly: %d", i, m.pc)
 	}
@@ -217,7 +217,7 @@ func (m *RiscV) ensureBranch(t *testing.T, i string) {
 
 func (m *RiscV) ensureDontBranch(t *testing.T, i string) {
 	pc := m.pc
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	if pc != m.pc-4 {
 		t.Fatalf("%s didn't pass correctly: %x", i, m.pc)
 	}
@@ -239,119 +239,119 @@ func TestInstructions(t *testing.T) {
 	//
 	// Arithmetic immediate.
 	//
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t0", 1, "addi t0, zero, 1")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t0", 4, "xori t0, t0, 5")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t0", 6, "ori t0, t0, 2")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t0", 2, "andi t0, t0, 3")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t0", 8, "slli t0, t0, 2")
 
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", 536870914, "srli t2, t1, 2")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", 3758096386, "srai t2, t1, 2")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t3", 1, "slti t3, t2, t0")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t3", 0, "sltu t3, t2, t0")
 
 	//
 	// Arithmetic.
 	//
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t4", 3, "add t4, t0, t1")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t4", 1, "sub t4, t2, t1")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t4", 6, "xor t4, t3, t2")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t4", 3, "or t4, t0, t1")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t4", 1, "and t4, t2, t3")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t4", 4, "sll t4, t0, t1")
 
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t4", 536870914, "srl t4, t5, t1")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t4", 3758096386, "sra t4, t5, t1")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t4", 1, "slt t4, t5, t2")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t4", 0, "sltu t4, t5, t2")
 
 	//
 	// Loads and stores.
 	//
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t1", 0xaaeeffff, "test value moving")
 
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", 0xaaeeffff, "lw t2, t0, 0")
 
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", 0xffffffff, "lb t2, t0, 0")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", 0x000000ff, "lbu t2, t0, 0")
 
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", 0xffffffff, "lh t2, t0, 0")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", 0x0000ffff, "lhu t2, t0, 0")
 
 	//
 	// Jumps.
 	//
 	ret := m.pc
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	if m.pc == ret+4 {
 		t.Fatalf("jal does not jump correctly")
 	}
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	if m.pc != ret+4 {
 		t.Fatalf("jalr does not return correctly")
 	}
@@ -359,7 +359,7 @@ func TestInstructions(t *testing.T) {
 	//
 	// Calls.
 	//
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	call, _ := m.NextInstruction()
 	if call == nil {
 		t.Fatalf("call is nil")
@@ -378,8 +378,8 @@ func TestInstructions(t *testing.T) {
 	//
 	// Branches.
 	//
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 
 	m.ensureDontBranch(t, "beq")
 	m.ensureBranch(t, "beq")
@@ -406,42 +406,42 @@ func TestInstructions(t *testing.T) {
 	//
 	// auipc/lui
 	//
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t0", 0xaaaaa000, "lui t0, 0xaaaaa")
 	pc := m.pc
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t0", uint64(0xaaaaa000+pc), "auipc t0, 0xaaaaa")
 
 	//
 	// Multiplication extension.
 	//
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", uint64(0x1fffd000), "mul t2, t0, t1")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", uint64(0x1), "mulh t2, t0, t1")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", uint64(0x1ffffaaa), "div t2, t0, t1")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", uint64(0xE0003000), "mul t2, t0, t1 (neg)")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", uint64(0xFFFFFFFE), "mulh t2, t0, t1 (neg)")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	// -536869545 but without the 4 top bytes.
 	m.assertRegister(t, "t2", uint64(3758097750), "div t2, t0, t1 (neg)")
 
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", uint64(4294965248), "mulsu t2, t0, t1")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", uint64(0x7FFFF800), "mulu t2, t0, t1")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	m.assertRegister(t, "t2", uint64(0x7FFFF000), "remu t2, t0, t1")
 }

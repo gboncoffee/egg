@@ -196,7 +196,9 @@ func Tokenize(fileName string, tokens *[]Token) error {
 	if err != nil {
 		return fmt.Errorf(InterCtx.Get("couldn't open file: %v"), err)
 	}
-	defer file.Close()
+	defer func(){
+		_ = file.Close()
+	}()
 
 	scanner := bufio.NewScanner(file)
 
