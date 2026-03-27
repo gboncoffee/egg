@@ -27,7 +27,7 @@ func TestSagui(t *testing.T) {
 
 	assertBranch := func(name string) {
 		pc := m.GetCurrentInstructionAddress()
-		m.NextInstruction()
+		_, _ = m.NextInstruction()
 		if m.GetCurrentInstructionAddress() == pc+1 {
 			t.Fatalf("Didn't branched on %v", name)
 		}
@@ -35,74 +35,74 @@ func TestSagui(t *testing.T) {
 
 	assertDontBranch := func(name string) {
 		pc := m.GetCurrentInstructionAddress()
-		m.NextInstruction()
+		_, _ = m.NextInstruction()
 		if m.GetCurrentInstructionAddress() != pc+1 {
 			t.Fatalf("Branched on %v", name)
 		}
 	}
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 5, "first movl to branch")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(1, 5, "first movr to branch")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0, "zeroing r0 to branch")
 
 	assertBranch("brzr")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertBranch("jr")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertBranch("brzi")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertDontBranch("brzi")
 	assertDontBranch("brzr")
 	assertBranch("ji")
 
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0x1, "movl to arithmetic")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(1, 0x1, "movr to arithmetic")
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0xf0, "movh to arithmetic")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0xf1, "add")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0xf0, "sub")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0xf1, "or")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0x1, "and")
 
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0, "first not")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 1, "second not")
 
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0x2, "slr")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(0, 0x1, "srr")
 
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
+	_, _ = m.NextInstruction()
 	mem, _ := m.GetMemory(0xfa)
 	if mem != 0xa {
 		t.Fatalf("st failed")
 	}
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(1, 0, "zeroing r1 to be sure")
-	m.NextInstruction()
+	_, _ = m.NextInstruction()
 	assertRegister(1, 0xa, "ld")
 
 	call, _ := m.NextInstruction()

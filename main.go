@@ -12,8 +12,8 @@ import (
 	"github.com/gboncoffee/egg/machine"
 	"github.com/gboncoffee/egg/mips"
 	"github.com/gboncoffee/egg/reduxK"
-	"github.com/gboncoffee/egg/reduxv"
 	"github.com/gboncoffee/egg/reduxPia"
+	"github.com/gboncoffee/egg/reduxv"
 	"github.com/gboncoffee/egg/riscv"
 	"github.com/gboncoffee/egg/sagui"
 )
@@ -53,8 +53,8 @@ func runMachine(m machine.Machine) {
 				size := call.Arg2
 				buf := make([]uint8, size)
 				reader := bufio.NewReader(os.Stdin)
-				io.ReadFull(reader, buf)
-				m.SetMemoryChunk(addr, buf)
+				_, _ = io.ReadFull(reader, buf)
+				_ = m.SetMemoryChunk(addr, buf)
 			case machine.SYS_WRITE:
 				addr := call.Arg1
 				size := call.Arg2
@@ -73,8 +73,8 @@ func main() {
 	var m machine.Machine
 
 	machine.InterCtx.Init()
-	machine.InterCtx.AddLocale("pt_BR", brazilian)
-	machine.InterCtx.AutoSetPreferedLocale()
+	_ = machine.InterCtx.AddLocale("pt_BR", brazilian)
+	_ = machine.InterCtx.AutoSetPreferedLocale()
 	assembler.InterCtx = &machine.InterCtx
 
 	log.SetFlags(0)
