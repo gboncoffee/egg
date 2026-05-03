@@ -11,6 +11,7 @@ import (
 	"github.com/gboncoffee/egg/assembler"
 	"github.com/gboncoffee/egg/machine"
 	"github.com/gboncoffee/egg/mips"
+	"github.com/gboncoffee/egg/pia"
 	"github.com/gboncoffee/egg/reduxK"
 	"github.com/gboncoffee/egg/reduxPia"
 	"github.com/gboncoffee/egg/reduxv"
@@ -118,6 +119,9 @@ func main() {
 		m = reduxK.ReduxK()
 	case "reduxPia":
 		m = reduxPia.ReduxPia()
+	case "pia":
+		var r pia.Pia
+		m = &r
 	default:
 		log.Printf(machine.InterCtx.Get("Unknown architeture: %v\n"), architeture)
 		listArchs()
