@@ -19,7 +19,7 @@ import (
 	"github.com/gboncoffee/egg/sagui"
 )
 
-const VERSION = "3.4.0"
+const VERSION = "3.5.0"
 
 // Put new architetures here... (main.go:/switch architeture)
 func listArchs() {
@@ -29,7 +29,8 @@ func listArchs() {
 'sagui'   - Fantasy 8 bit RISC
 'reduxv'  - 8 bit version of RISC-V
 'reduxK'  - Kaluf's version of reduxv
-'reduxPia - Gabriel's version of reduxv (REDUX-PIÁ)`))
+'reduxPia - Gabriel's version of reduxv (REDUX-PIÁ)
+'pia'     - Processador de Informação Avançado (experimental)`))
 }
 
 func version() {
