@@ -1005,13 +1005,13 @@ func assembleJ32Instruction(mnemonic string, t assembler.ResolvedToken, addr uin
 		bit16 = 1
 		return encodeJ32(imm, bit16, 0xD), nil
 	case "lrj":
-		offset := target - int32(addr) - 4
+		offset := target - int32(addr)
 		offset = offset >> 1
 		imm := uint32(offset) & 0xFFFFFFF
 		bit16 = 0
 		return encodeJ32(imm, bit16, 0xE), nil
 	case "lrjl":
-		offset := target - int32(addr) - 4
+		offset := target - int32(addr)
 		offset = offset >> 1
 		imm := uint32(offset) & 0xFFFFFFF
 		bit16 = 1
