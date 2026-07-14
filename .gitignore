@@ -7,3 +7,4 @@ egg-darwin
 egg-darwin-arm64
 egg-windows.exe
 egg-windows-arm64.exe
+/.agent-shell/

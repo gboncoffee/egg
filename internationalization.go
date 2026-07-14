@@ -260,4 +260,11 @@ No comando print, <addr>#tamanho significa "tantas instruções após addr".
 	"end address %v bigger than maximum 8 bit address %v": "endereço final %v maior que o máximo endereço de 8 bits %v",
 	"failed to fetch instruction from memory: %v":         "falha lendo a instrução da memória: %v",
 	"immediate bigger than immediate size: %v":            "imediato maior que o tamanho do imediato: %v",
+
+	//
+	// pia.go specific.
+	//
+	"could not load 2 bytes from address at PC: %x": "não foi possível carregar 2 bytes do endereço do PC: %x",
+	"misaligned instruction":                        "instrução desalinhada",
+	"reserved instruction":                          "instrução reservada",
 }
