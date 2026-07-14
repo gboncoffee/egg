@@ -613,6 +613,9 @@ func (m *Pia) SetRegister(reg uint64, content uint64) error {
 	if reg >= 16 {
 		return fmt.Errorf(machine.InterCtx.Get("no such register: %d. PIÁ has only 16 registers"), reg)
 	}
+	if content > math.MaxUint32 {
+		return fmt.Errorf(machine.InterCtx.Get("value %v bigger than maximum 32 bit unsigned value %v"), content, math.MaxUint32)
+	}
 	m.registers[reg] = uint32(content)
 	return nil
 }
