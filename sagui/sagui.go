@@ -183,13 +183,13 @@ func (m *Sagui) ArchitectureInfo() machine.ArchitectureInfo {
 
 func getRegisterNumber(r string) (uint64, error) {
 	switch r {
-	case "r0", "0":
+	case "r0":
 		return 0, nil
-	case "r1", "1":
+	case "r1":
 		return 1, nil
-	case "r2", "2":
+	case "r2":
 		return 2, nil
-	case "r3", "3":
+	case "r3":
 		return 3, nil
 	default:
 		return 0, fmt.Errorf(machine.InterCtx.Get("no such register: %v"), r)
